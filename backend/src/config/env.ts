@@ -1,10 +1,10 @@
-import { config } from "dotenv";
-import { z } from "zod";
+import { config } from 'dotenv';
+import { z } from 'zod';
 
 config();
 
 const envSchema = z.object({
-  PORT: z.string().default("3000"),
+  PORT: z.string().default('3000'),
   DATABASE_URL: z.string(),
   JWT_SECRET: z.string(),
   JWT_REFRESH_SECRET: z.string(),

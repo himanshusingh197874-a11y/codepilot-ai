@@ -1,4 +1,4 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance } from 'fastify';
 
 export async function registerErrorHandler(app: FastifyInstance) {
   app.setErrorHandler((error, request, reply) => {
