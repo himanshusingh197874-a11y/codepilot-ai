@@ -8,4 +8,5 @@ export async function healthRoutes(app: FastifyInstance) {
       timestamp: new Date().toISOString(),
     };
   });
+
 }
