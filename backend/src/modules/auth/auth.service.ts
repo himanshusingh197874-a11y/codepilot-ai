@@ -30,20 +30,25 @@ export async function loginWithGithub(
   let user = await findUserByGithubId(githubUser.id.toString());
 
   if (!user) {
-    user = await createGithubUser({
-      githubId: githubUser.id.toString(),
-      username: githubUser.login,
-      name: githubUser.name,
-      email: githubUser.email,
-      avatarUrl: githubUser.avatar_url,
-    });
-  } else {
     user = await updateGithubUser(user.id, {
-      username: githubUser.login,
-      name: githubUser.name,
-      email: githubUser.email,
-      avatarUrl: githubUser.avatar_url,
-    });
+  githubUserId: githubUser.id.toString(),
+  accessToken: githubAccessToken,
+
+  username: githubUser.login,
+  name: githubUser.name,
+  email: githubUser.email,
+  avatarUrl: githubUser.avatar_url,
+});
+  } else {
+    user = await createGithubUser({
+  githubUserId: githubUser.id.toString(),
+  accessToken: githubAccessToken,
+
+  username: githubUser.login,
+  name: githubUser.name,
+  email: githubUser.email,
+  avatarUrl: githubUser.avatar_url,
+});
   }
 
   const accessToken = await generateAccessToken(app, {
