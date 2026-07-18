@@ -39,20 +39,26 @@ model GithubAccount {
 }
 
 model Repository {
-  id            String   @id @default(cuid())
+  id             String   @id @default(cuid())
 
-  githubRepoId  Int      @unique
+  githubRepoId   Int      @unique
 
-  owner         String
-  name          String
-  fullName      String   @unique
+  owner          String
+  name           String
+  fullName       String   @unique
+  defaultBranch  String
 
-  defaultBranch String
-  private       Boolean
+  private        Boolean
 
-  userId        String
-  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enabled        Boolean  @default(false)
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  webhookId      String?
+
+  lastSyncedAt   DateTime?
+
+  userId         String
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
