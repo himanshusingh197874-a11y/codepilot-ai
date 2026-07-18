@@ -31,7 +31,9 @@ export async function loginWithGithub(
 
   if (!user) {
     user = await createGithubUser({
-      githubId: githubUser.id.toString(),
+      githubUserId: githubUser.id.toString(),
+      accessToken: githubAccessToken,
+
       username: githubUser.login,
       name: githubUser.name,
       email: githubUser.email,
@@ -39,6 +41,9 @@ export async function loginWithGithub(
     });
   } else {
     user = await updateGithubUser(user.id, {
+      githubUserId: githubUser.id.toString(),
+      accessToken: githubAccessToken,
+
       username: githubUser.login,
       name: githubUser.name,
       email: githubUser.email,

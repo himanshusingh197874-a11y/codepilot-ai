@@ -6,7 +6,7 @@ export function getGithubAuthUrl() {
   const params = new URLSearchParams({
     client_id: env.GITHUB_CLIENT_ID,
     redirect_uri: env.GITHUB_CALLBACK_URL,
-    scope: "read:user user:email",
+    scope: "repo read:user user:email",
   });
 
   return `https://github.com/login/oauth/authorize?${params.toString()}`;
