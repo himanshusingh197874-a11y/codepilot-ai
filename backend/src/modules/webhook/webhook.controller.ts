@@ -2,9 +2,14 @@ import { prisma } from '../../lib/prisma';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 import { fetchPullRequestFiles } from '../pr/pr.service';
-import { reviewPatch } from '../ai/ai.service';
+import { getPullRequest } from '../pr/pr.github';
+import { extractAddedLinesWithNumbers } from '../pr/diff.parser';
+
+import { reviewPatch, analyzeLine } from '../ai/ai.service';
 import { formatReviewComment } from '../ai/review.formatter';
+
 import { createPullRequestReview } from '../../providers/github/github.review';
+import { createInlineReview, InlineComment } from '../../providers/github/github.inline-review';
 
 export async function githubWebhook(
   request: FastifyRequest,
@@ -55,8 +60,30 @@ export async function githubWebhook(
 
     console.log(`Fetched ${files.length} changed files`);
 
-    // Run AI reviews
+    // Get GitHub account
+    const githubAccount = await prisma.githubAccount.findUnique({
+      where: { userId: repository.userId },
+    });
+
+    if (!githubAccount) {
+      throw new Error('GitHub account not connected');
+    }
+
+    // Get latest commit SHA for inline comments
+    const pr = await getPullRequest(
+      githubAccount.accessToken,
+      owner,
+      repo,
+      pullNumber,
+    );
+
+    const latestCommitSha = pr.head.sha;
+
+    // Collect summary reviews
     const reviews = [];
+
+    // Collect inline comments
+    const inlineComments: InlineComment[] = [];
 
     for (const file of files) {
       console.log({
@@ -66,7 +93,29 @@ export async function githubWebhook(
         deletions: file.deletions,
       });
 
+      // Inline comments on specific added lines
       if (file.patch) {
+
+        const addedLines = extractAddedLinesWithNumbers(file.patch);
+
+        for (const addedLine of addedLines) {
+          const comment = analyzeLine(addedLine.content);
+
+          if (comment) {
+
+            console.log(
+              `Queueing inline comment for ${file.filename}:${addedLine.lineNumber}`
+            );
+
+            inlineComments.push({
+              path: file.filename,
+              line: addedLine.lineNumber,
+              body: comment,
+            });
+          }
+        }
+
+        // Summary review for the file
         const review = await reviewPatch(file.filename, file.patch);
 
         reviews.push(review);
@@ -78,19 +127,28 @@ export async function githubWebhook(
       }
     }
 
-    // Get GitHub account for posting review
-    const githubAccount = await prisma.githubAccount.findUnique({
-      where: { userId: repository.userId },
-    });
+    // Post inline comments as a single review
+    if (inlineComments.length > 0) {
+      try {
+        await createInlineReview(
+          githubAccount.accessToken,
+          owner,
+          repo,
+          pullNumber,
+          latestCommitSha,
+          inlineComments,
+        );
 
-    if (!githubAccount) {
-      throw new Error('GitHub account not connected');
+        console.log(`Posted ${inlineComments.length} inline comments`);
+      } catch (error) {
+        console.error('Inline review failed:', error);
+      }
     }
 
-    // Format review comment
+    // Format summary review comment
     const reviewBody = formatReviewComment(reviews);
 
-    // Post review to GitHub PR
+    // Post summary review to GitHub PR
     await createPullRequestReview(
       githubAccount.accessToken,
       owner,
