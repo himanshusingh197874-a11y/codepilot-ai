@@ -99,6 +99,11 @@ export async function githubWebhook(
           const comment = analyzeLine(addedLine.content);
 
           if (comment) {
+            console.log({
+  file: file.filename,
+  line: addedLine.lineNumber,
+  content: addedLine.content,
+});
             console.log(
               `Posting inline comment on ${file.filename}:${addedLine.lineNumber}`
             );
