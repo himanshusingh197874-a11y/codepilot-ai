@@ -9,7 +9,7 @@ import { reviewPatch, analyzeLine } from '../ai/ai.service';
 import { formatReviewComment } from '../ai/review.formatter';
 
 import { createPullRequestReview } from '../../providers/github/github.review';
-import { createInlineReviewComment } from '../../providers/github/github.inline-review';
+import { createInlineReview, InlineComment } from '../../providers/github/github.inline-review';
 
 export async function githubWebhook(
   request: FastifyRequest,
@@ -82,18 +82,22 @@ export async function githubWebhook(
     // Collect summary reviews
     const reviews = [];
 
+    // Collect inline comments
+    const inlineComments: InlineComment[] = [];
+
     for (const file of files) {
-        console.log('inline comment test'); // temporary test line
       console.log({
         filename: file.filename,
         status: file.status,
         additions: file.additions,
         deletions: file.deletions,
       });
-      console.log('PATCH FOR FILE:', file.filename);
-console.log(file.patch);
+
       // Inline comments on specific added lines
       if (file.patch) {
+        console.log('PATCH FOR FILE:', file.filename);
+        console.log(file.patch);
+
         const addedLines = extractAddedLinesWithNumbers(file.patch);
 
         for (const addedLine of addedLines) {
@@ -101,29 +105,20 @@ console.log(file.patch);
 
           if (comment) {
             console.log({
-  file: file.filename,
-  line: addedLine.lineNumber,
-  content: addedLine.content,
-});
+              file: file.filename,
+              line: addedLine.lineNumber,
+              content: addedLine.content,
+            });
+
             console.log(
-              `Posting inline comment on ${file.filename}:${addedLine.lineNumber}`
+              `Queueing inline comment for ${file.filename}:${addedLine.lineNumber}`
             );
 
-            try {
-  await createInlineReviewComment(
-    githubAccount.accessToken,
-    owner,
-    repo,
-    pullNumber,
-    latestCommitSha,
-    file.filename,
-    addedLine.lineNumber,
-    comment,
-  );
-} catch (error) {
-  console.error('Inline comment failed:', error);
-  // continue processing other files/comments
-}
+            inlineComments.push({
+              path: file.filename,
+              line: addedLine.lineNumber,
+              body: comment,
+            });
           }
         }
 
@@ -136,6 +131,24 @@ console.log(file.patch);
         console.log(JSON.stringify(review, null, 2));
       } else {
         console.log('No patch available for file:', file.filename);
+      }
+    }
+
+    // Post inline comments as a single review
+    if (inlineComments.length > 0) {
+      try {
+        await createInlineReview(
+          githubAccount.accessToken,
+          owner,
+          repo,
+          pullNumber,
+          latestCommitSha,
+          inlineComments,
+        );
+
+        console.log(`Posted ${inlineComments.length} inline comments`);
+      } catch (error) {
+        console.error('Inline review failed:', error);
       }
     }
 

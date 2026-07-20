@@ -1,6 +1,21 @@
-export async function createInlineReviewComment( accessToken: string, owner: string, repo: string, pullNumber: number, commitId: string, path: string, line: number, body: string,) {
+export interface InlineComment {
+  path: string;
+  line: number;
+  body: string;
+}
+
+export async function createInlineReview(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  pullNumber: number,
+  commitId: string,
+  comments: InlineComment[],
+) {
+  if (comments.length === 0) return;
+
   const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/comments`,
+    `https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/reviews`,
     {
       method: 'POST',
       headers: {
@@ -9,18 +24,21 @@ export async function createInlineReviewComment( accessToken: string, owner: str
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        body,
         commit_id: commitId,
-        path,
-        line,
-        side: 'RIGHT',
+        event: 'COMMENT',
+        comments: comments.map((c) => ({
+          path: c.path,
+          line: c.line,
+          side: 'RIGHT',
+          body: c.body,
+        })),
       }),
     },
   );
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`Failed to create inline comment: ${error}`);
+    throw new Error(`Failed to create inline review: ${error}`);
   }
 
   return response.json();
