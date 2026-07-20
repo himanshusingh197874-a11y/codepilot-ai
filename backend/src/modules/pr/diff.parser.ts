@@ -11,7 +11,7 @@ export function extractAddedLinesWithNumbers(patch: string): AddedLine[] {
 
   for (const line of lines) {
     // Match hunk header: @@ -1,5 +10,8 @@
-    const hunkMatch = line.match(/^@@ -\\d+(?:,\\d+)? \\+(\\d+)(?:,\\d+)? @@/);
+    const hunkMatch = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
 
     if (hunkMatch) {
       newLineNumber = parseInt(hunkMatch[1], 10);
@@ -29,13 +29,13 @@ export function extractAddedLinesWithNumbers(patch: string): AddedLine[] {
       continue;
     }
 
-    // Context line (exists in both old and new files)
+    // Context line
     if (line.startsWith(' ')) {
       newLineNumber++;
       continue;
     }
 
-    // Removed line: do NOT increment new file line number
+    // Removed line: do not increment new-file line number
     if (line.startsWith('-') && !line.startsWith('---')) {
       continue;
     }
