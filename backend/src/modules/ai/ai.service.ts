@@ -8,8 +8,9 @@ function getAddedLines(patch: string): string[] {
 }
 
 export async function reviewPatch( filename: string, patch: string,): Promise<FileReview> {
-  console.log(`Reviewing ${filename}...`);
-
+  if (addedCode.includes('console.log(') && !filename.includes('ai.service.ts')) {
+  // flag issue
+}
   const addedLines = getAddedLines(patch);
   const addedCode = addedLines.join('\n');
 
