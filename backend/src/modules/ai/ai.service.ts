@@ -7,18 +7,22 @@ function getAddedLines(patch: string): string[] {
     .map((line) => line.slice(1));
 }
 
-export async function reviewPatch( filename: string, patch: string,): Promise<FileReview> {
-  if (addedCode.includes('console.log(') && !filename.includes('ai.service.ts')) {
-  // flag issue
-}
+export async function reviewPatch(
+  filename: string,
+  patch: string,
+): Promise<FileReview> {
+  // Extract only newly added lines from the diff
   const addedLines = getAddedLines(patch);
   const addedCode = addedLines.join('\n');
 
   const issues: FileReview['issues'] = [];
   const suggestions: string[] = [];
 
-  // Check only newly added code
-  if (addedCode.includes('console.log(')) {
+  // Check for debug logging
+  if (
+    addedCode.includes('console.log(') &&
+    !filename.includes('ai.service.ts')
+  ) {
     issues.push({
       severity: 'low',
       message: 'Debug logging found in newly added code',
@@ -26,6 +30,7 @@ export async function reviewPatch( filename: string, patch: string,): Promise<Fi
     });
   }
 
+  // Check for any type usage
   if (/:\s*any\b/.test(addedCode)) {
     issues.push({
       severity: 'medium',
@@ -34,6 +39,7 @@ export async function reviewPatch( filename: string, patch: string,): Promise<Fi
     });
   }
 
+  // Check for TODO comments
   if (addedCode.includes('TODO')) {
     issues.push({
       severity: 'low',
