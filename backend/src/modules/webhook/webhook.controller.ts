@@ -95,8 +95,6 @@ export async function githubWebhook(
 
       // Inline comments on specific added lines
       if (file.patch) {
-        console.log('PATCH FOR FILE:', file.filename);
-        console.log(file.patch);
 
         const addedLines = extractAddedLinesWithNumbers(file.patch);
 
@@ -104,11 +102,6 @@ export async function githubWebhook(
           const comment = analyzeLine(addedLine.content);
 
           if (comment) {
-            console.log({
-              file: file.filename,
-              line: addedLine.lineNumber,
-              content: addedLine.content,
-            });
 
             console.log(
               `Queueing inline comment for ${file.filename}:${addedLine.lineNumber}`
