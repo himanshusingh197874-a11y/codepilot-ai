@@ -1,45 +1,61 @@
 import { FileReview } from './ai.types';
 
+function getAddedLines(patch: string): string[] {
+  return patch
+    .split('\n')
+    .filter((line) => line.startsWith('+') && !line.startsWith('+++'))
+    .map((line) => line.slice(1));
+}
+
 export async function reviewPatch( filename: string, patch: string,): Promise<FileReview> {
   console.log(`Reviewing ${filename}...`);
+
+  const addedLines = getAddedLines(patch);
+  const addedCode = addedLines.join('\n');
 
   const issues: FileReview['issues'] = [];
   const suggestions: string[] = [];
 
-  // Simple rule-based checks
-  if (patch.includes('console.log')) {
+  // Check only newly added code
+  if (addedCode.includes('console.log(')) {
     issues.push({
       severity: 'low',
-      message: 'console.log found in code',
-      suggestion: 'Remove debug logging before production deployment',
+      message: 'Debug logging found in newly added code',
+      suggestion: 'Remove console.log statements before production deployment',
     });
   }
 
-  if (patch.includes('any')) {
+  if (/:\s*any\b/.test(addedCode)) {
     issues.push({
       severity: 'medium',
-      message: 'Usage of any type detected',
-      suggestion: 'Replace any with a specific TypeScript type',
+      message: 'Usage of any type detected in newly added code',
+      suggestion: 'Use a specific TypeScript type instead of any',
     });
   }
 
-  if (patch.includes('TODO')) {
+  if (addedCode.includes('TODO')) {
     issues.push({
       severity: 'low',
-      message: 'TODO comment found',
-      suggestion: 'Track TODOs in issues or complete before merge',
+      message: 'TODO comment found in newly added code',
+      suggestion: 'Track TODOs in GitHub Issues or complete them before merge',
     });
   }
 
   // General suggestions
-  suggestions.push('Consider adding unit tests for new functionality');
+  if (filename.endsWith('.service.ts')) {
+    suggestions.push('Consider adding unit tests for service logic');
+  }
+
+  if (filename.endsWith('.controller.ts')) {
+    suggestions.push('Consider validating request payloads with Zod');
+  }
 
   return {
     filename,
     summary:
       issues.length === 0
         ? 'Code looks good overall'
-        : `Found ${issues.length} potential issue(s)`,
+        : `Found ${issues.length} potential issue(s) in newly added code`,
     issues,
     suggestions,
   };
