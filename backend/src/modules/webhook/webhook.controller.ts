@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { fetchPullRequestFiles } from '../pr/pr.service';
+import { reviewPatch } from '../ai/ai.service';
 
 export async function githubWebhook( request: FastifyRequest, reply: FastifyReply,) {
   const event = request.headers['x-github-event'];
@@ -46,13 +47,23 @@ export async function githubWebhook( request: FastifyRequest, reply: FastifyRepl
     console.log(`Fetched ${files.length} changed files`);
 
     for (const file of files) {
-      console.log({
-        filename: file.filename,
-        status: file.status,
-        additions: file.additions,
-        deletions: file.deletions,
-      });
-    }
+  console.log({
+    filename: file.filename,
+    status: file.status,
+    additions: file.additions,
+    deletions: file.deletions,
+  });
+
+  // Run AI review if patch is available
+  if (file.patch) {
+    const review = await reviewPatch(file.filename, file.patch);
+
+    console.log('AI REVIEW RESULT');
+    console.log(JSON.stringify(review, null, 2));
+  } else {
+    console.log('No patch available for file:', file.filename);
+  }
+}
   
 }
   }
@@ -61,3 +72,5 @@ export async function githubWebhook( request: FastifyRequest, reply: FastifyRepl
 
   return reply.send({ received: true });
 }
+
+console.log('debug');
