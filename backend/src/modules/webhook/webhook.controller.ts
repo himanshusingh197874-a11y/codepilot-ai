@@ -90,7 +90,8 @@ export async function githubWebhook(
         additions: file.additions,
         deletions: file.deletions,
       });
-
+      console.log('PATCH FOR FILE:', file.filename);
+console.log(file.patch);
       // Inline comments on specific added lines
       if (file.patch) {
         const addedLines = extractAddedLinesWithNumbers(file.patch);
@@ -108,16 +109,21 @@ export async function githubWebhook(
               `Posting inline comment on ${file.filename}:${addedLine.lineNumber}`
             );
 
-            await createInlineReviewComment(
-              githubAccount.accessToken,
-              owner,
-              repo,
-              pullNumber,
-              latestCommitSha,
-              file.filename,
-              addedLine.lineNumber,
-              comment,
-            );
+            try {
+  await createInlineReviewComment(
+    githubAccount.accessToken,
+    owner,
+    repo,
+    pullNumber,
+    latestCommitSha,
+    file.filename,
+    addedLine.lineNumber,
+    comment,
+  );
+} catch (error) {
+  console.error('Inline comment failed:', error);
+  // continue processing other files/comments
+}
           }
         }
 
