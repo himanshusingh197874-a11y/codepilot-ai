@@ -102,5 +102,5 @@ model ReviewComment {
   fingerprint String @unique
   createdAt DateTime @default(now())
 
-  review Review @relation(fields: [reviewId], references: [id])
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 }
