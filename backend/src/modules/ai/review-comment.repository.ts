@@ -9,8 +9,8 @@ export async function saveReviewComment(params: {
   severity: string;
 }) {
   const fingerprint = createHash('sha256')
-    .update(`${params.reviewId}:${params.path}:${params.line}:${params.body}`)
-    .digest('hex');
+  .update(`${params.path}:${params.line}:${params.body}`)
+  .digest('hex');
 
   return prisma.reviewComment.upsert({
     where: { fingerprint },
