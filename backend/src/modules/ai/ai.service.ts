@@ -16,6 +16,7 @@ export async function reviewPatch(
   const addedCode = addedLines.join('\n');
 
   const issues: FileReview['issues'] = [];
+  let score = 10;
   const suggestions: string[] = [];
 
   // Check for debug logging
@@ -57,15 +58,41 @@ export async function reviewPatch(
     suggestions.push('Consider validating request payloads with Zod');
   }
 
+  // Calculate score based on issue severity
+for (const issue of issues) {
+  switch (issue.severity) {
+    case 'critical':
+      score -= 5;
+      break;
+    case 'high':
+      score -= 3;
+      break;
+    case 'medium':
+      score -= 2;
+      break;
+    case 'low':
+      score -= 1;
+      break;
+    case 'info':
+      score -= 0.5;
+      break;
+  }
+}
+
+// Clamp score between 0 and 10
+score = Math.max(0, Number(score.toFixed(1)));
+
   return {
-    filename,
-    summary:
-      issues.length === 0
-        ? 'Code looks good overall'
-        : `Found ${issues.length} potential issue(s) in newly added code`,
-    issues,
-    suggestions,
-  };
+  filename,
+  summary:
+    issues.length === 0
+      ? 'Code looks good overall'
+      : `Found ${issues.length} potential issue(s) in newly added code`,
+  score,
+  issues,
+  suggestions,
+ };
+
 }
 
 // Analyze a single added line for inline comments
