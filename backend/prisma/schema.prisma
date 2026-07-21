@@ -93,15 +93,14 @@ model Review {
 }
 
 model ReviewComment {
-  id          String   @id @default(cuid())
-  reviewId    String
-  path        String
-  line        Int
-  severity    String
-  body        String
-  fingerprint String   @unique
-
-  review Review @relation(fields: [reviewId], references: [id])
-
+  id        String   @id @default(cuid())
+  reviewId  String
+  path      String
+  line      Int
+  body      String
+  severity  String
+  fingerprint String @unique
   createdAt DateTime @default(now())
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 }

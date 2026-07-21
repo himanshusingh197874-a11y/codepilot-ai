@@ -9,6 +9,7 @@ import { reviewPatch, analyzeLine } from '../ai/ai.service';
 import { shouldIgnoreFile } from '../ai/review.config';
 import { formatReviewComment } from '../ai/review.formatter';
 import { saveReview } from '../ai/review.repository';
+import { saveReviewComments } from '../ai/review-comment.repository';
 
 import { createPullRequestReview } from '../../providers/github/github.review';
 import { createInlineReview, InlineComment } from '../../providers/github/github.inline-review';
@@ -180,6 +181,18 @@ const savedReview = await saveReview({
   state: payload.pull_request.state,
   reviews,
 });
+
+const savedComments = await saveReviewComments({
+  reviewId: savedReview.id,
+  comments: inlineComments.map((comment) => ({
+    path: comment.path,
+    line: comment.line,
+    body: comment.body,
+    severity: 'warning',
+  })),
+});
+
+console.log(`Saved ${savedComments} review comments to database`);
 
 console.log('Saved review to database:', {
   reviewId: savedReview.id,
