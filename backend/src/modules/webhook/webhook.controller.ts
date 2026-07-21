@@ -174,7 +174,7 @@ console.log('Posted AI review to GitHub PR');
 // Persist review in database
 const savedReview = await saveReview({
   repositoryId: repository.id,
-  githubPrId: payload.pull_request.id,
+  githubPrId: BigInt(payload.pull_request.id),
   number: pullNumber,
   title: payload.pull_request.title,
   state: payload.pull_request.state,

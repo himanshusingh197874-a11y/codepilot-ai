@@ -67,7 +67,7 @@ model Repository {
 
 model PullRequest {
   id           String   @id @default(cuid())
-  githubPrId   Int      @unique
+  githubPrId   BigInt      @unique
   number       Int
   title        String
   state        String

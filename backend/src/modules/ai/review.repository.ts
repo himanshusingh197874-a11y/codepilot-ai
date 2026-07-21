@@ -3,7 +3,7 @@ import { FileReview } from './ai.types';
 
 export async function saveReview(params: {
   repositoryId: string;
-  githubPrId: number;
+  githubPrId: bigint;
   number: number;
   title: string;
   state: string;
