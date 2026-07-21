@@ -3,6 +3,8 @@ import { prisma } from '../../lib/prisma';
 
 export async function saveReviewComments(params: {
   reviewId: string;
+  repositoryId: string;
+  githubPrId: bigint;
   comments: {
     path: string;
     line: number;
@@ -14,8 +16,10 @@ export async function saveReviewComments(params: {
 
   for (const comment of params.comments) {
   const fingerprint = createHash('sha256')
-    .update(`${comment.path}:${comment.line}:${comment.severity}`)
-    .digest('hex');
+  .update(
+    `${params.repositoryId}:${params.githubPrId}:${comment.path}:${comment.line}:${comment.severity}`,
+  )
+  .digest('hex');
 
   const existing = await prisma.reviewComment.findUnique({
     where: { fingerprint },
