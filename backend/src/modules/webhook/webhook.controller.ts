@@ -6,10 +6,12 @@ import { getPullRequest } from '../pr/pr.github';
 import { extractAddedLinesWithNumbers } from '../pr/diff.parser';
 
 import { reviewPatch, analyzeLine } from '../ai/ai.service';
+import { shouldIgnoreFile } from '../ai/review.config';
 import { formatReviewComment } from '../ai/review.formatter';
 
 import { createPullRequestReview } from '../../providers/github/github.review';
 import { createInlineReview, InlineComment } from '../../providers/github/github.inline-review';
+
 
 export async function githubWebhook(
   request: FastifyRequest,
@@ -85,7 +87,11 @@ export async function githubWebhook(
     // Collect inline comments
     const inlineComments: InlineComment[] = [];
 
-    for (const file of files) {
+    for (const file of files){
+        if (shouldIgnoreFile(file.filename)) {
+        console.log(`Skipping ignored file: ${file.filename}`);
+        continue;
+        }
       console.log({
         filename: file.filename,
         status: file.status,
