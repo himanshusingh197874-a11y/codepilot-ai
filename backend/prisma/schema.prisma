@@ -59,6 +59,49 @@ model Repository {
   userId         String
   user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  pullRequests PullRequest[]
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model PullRequest {
+  id           String   @id @default(cuid())
+  githubPrId   BigInt      @unique
+  number       Int
+  title        String
+  state        String
+  repositoryId String
+
+  repository Repository @relation(fields: [repositoryId], references: [id])
+  reviews    Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  pullRequestId String
+  summary       String
+  score         Float
+
+  pullRequest PullRequest @relation(fields: [pullRequestId], references: [id])
+  comments    ReviewComment[]
+
+  createdAt DateTime @default(now())
+}
+
+model ReviewComment {
+  id          String   @id @default(cuid())
+  reviewId    String
+  path        String
+  line        Int
+  severity    String
+  body        String
+  fingerprint String   @unique
+
+  review Review @relation(fields: [reviewId], references: [id])
+
+  createdAt DateTime @default(now())
 }

@@ -8,6 +8,7 @@ import { extractAddedLinesWithNumbers } from '../pr/diff.parser';
 import { reviewPatch, analyzeLine } from '../ai/ai.service';
 import { shouldIgnoreFile } from '../ai/review.config';
 import { formatReviewComment } from '../ai/review.formatter';
+import { saveReview } from '../ai/review.repository';
 
 import { createPullRequestReview } from '../../providers/github/github.review';
 import { createInlineReview, InlineComment } from '../../providers/github/github.inline-review';
@@ -25,7 +26,12 @@ export async function githubWebhook(
   console.log('Action:', payload?.action);
   console.log('Repository:', payload?.repository?.full_name);
 
-  if (event === 'pull_request') {
+ if (event === 'pull_request') {
+  // Skip closed PRs
+  if (payload.action === 'closed') {
+    console.log('Skipping closed pull request');
+    return reply.send({ received: true, skipped: true });
+  }
     console.log('PR EVENT RECEIVED');
 
     const owner = payload.repository.owner.login;
@@ -156,14 +162,29 @@ export async function githubWebhook(
 
     // Post summary review to GitHub PR
     await createPullRequestReview(
-      githubAccount.accessToken,
-      owner,
-      repo,
-      pullNumber,
-      reviewBody,
-    );
+  githubAccount.accessToken,
+  owner,
+  repo,
+  pullNumber,
+  reviewBody,
+);
 
-    console.log('Posted AI review to GitHub PR');
+console.log('Posted AI review to GitHub PR');
+
+// Persist review in database
+const savedReview = await saveReview({
+  repositoryId: repository.id,
+  githubPrId: BigInt(payload.pull_request.id),
+  number: pullNumber,
+  title: payload.pull_request.title,
+  state: payload.pull_request.state,
+  reviews,
+});
+
+console.log('Saved review to database:', {
+  reviewId: savedReview.id,
+  score: savedReview.score,
+});
   }
 
   console.log('==============================');
