@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import * as authService from "./auth.service";
+import { env } from "../../config/env";
 
 export async function githubLogin(
   request: FastifyRequest,
@@ -18,7 +19,10 @@ export async function githubCallback(
 
   const result = await authService.loginWithGithub(request.server, code);
 
-  return reply.send(result);
+  const callbackUrl = new URL("/auth/callback", env.APP_URL);
+  callbackUrl.searchParams.set("accessToken", result.accessToken);
+
+  return reply.redirect(callbackUrl.toString());
 }
 
 export async function me(
