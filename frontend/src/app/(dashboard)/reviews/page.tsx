@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 
@@ -15,6 +16,7 @@ type Review = {
 
 export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     api
@@ -53,7 +55,9 @@ export default function ReviewsPage() {
 
           <tbody className="divide-y divide-gray-200 bg-white">
             {reviews.map((review) => (
-              <tr key={review.id} className="hover:bg-gray-50">
+              <tr key={review.id}
+                    onClick={() => router.push(`/reviews/${review.id}`)}
+                    className="cursor-pointer hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 text-sm font-medium text-gray-900">
                   {review.pullRequest.repository.fullName}
                 </td>
