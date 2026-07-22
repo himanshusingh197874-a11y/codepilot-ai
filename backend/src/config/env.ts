@@ -12,6 +12,7 @@ const envSchema = z.object({
   GITHUB_CLIENT_ID: z.string(),
   GITHUB_CLIENT_SECRET: z.string(),
   GITHUB_CALLBACK_URL: z.string().url(),
+  APP_URL: z.string().url(),
 });
 
 export const env = envSchema.parse(process.env);
