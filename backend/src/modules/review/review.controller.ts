@@ -5,16 +5,23 @@ import {
   getRepositoryReviews,
   getReviewStats,
 } from './review.repository';
+import { reviewListQuerySchema } from './review.schema';
 
-export async function getReviews( request: FastifyRequest<{ Querystring: { page?: string; limit?: string } }>, reply: FastifyReply,) {
-  const page = Number(request.query.page ?? 1);
-  const limit = Number(request.query.limit ?? 10);
+export async function getReviews(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const query = reviewListQuerySchema.parse(request.query);
 
-  const result = await listReviews(page, limit);
+  const result = await listReviews(query);
+
   return reply.send(result);
 }
 
-export async function getReview( request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply,) {
+export async function getReview(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply,
+) {
   const review = await getReviewById(request.params.id);
 
   if (!review) {
@@ -24,12 +31,20 @@ export async function getReview( request: FastifyRequest<{ Params: { id: string 
   return reply.send(review);
 }
 
-export async function getRepositoryReviewHistory( request: FastifyRequest<{ Params: { repoId: string } }>, reply: FastifyReply,) {
+export async function getRepositoryReviewHistory(
+  request: FastifyRequest<{ Params: { repoId: string } }>,
+  reply: FastifyReply,
+) {
   const reviews = await getRepositoryReviews(request.params.repoId);
+
   return reply.send(reviews);
 }
 
-export async function getStats(_request: FastifyRequest, reply: FastifyReply) {
+export async function getStats(
+  _request: FastifyRequest,
+  reply: FastifyReply,
+) {
   const stats = await getReviewStats();
+
   return reply.send(stats);
 }
