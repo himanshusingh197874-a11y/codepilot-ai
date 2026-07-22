@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { ReviewListQuery } from './review.schema';
 
 function serializeReview(review: any) {
   return {
@@ -13,28 +14,73 @@ function serializeReview(review: any) {
   };
 }
 
-export async function listReviews(page = 1, limit = 10) {
+export async function listReviews(query: ReviewListQuery) {
+  const {
+    page,
+    limit,
+    repositoryId,
+    state,
+    minScore,
+    maxScore,
+    from,
+    to,
+    sortBy,
+    order,
+  } = query;
+
   const skip = (page - 1) * limit;
+
+  const where: any = {
+    pullRequest: {},
+  };
+
+  if (repositoryId) {
+    where.pullRequest.repositoryId = repositoryId;
+  }
+
+  if (state) {
+    where.pullRequest.state = state;
+  }
+
+  if (minScore !== undefined || maxScore !== undefined) {
+    where.score = {};
+
+    if (minScore !== undefined) where.score.gte = minScore;
+    if (maxScore !== undefined) where.score.lte = maxScore;
+  }
+
+  if (from || to) {
+    where.createdAt = {};
+
+    if (from) where.createdAt.gte = new Date(from);
+    if (to) where.createdAt.lte = new Date(to);
+  }
 
   const [items, total] = await Promise.all([
     prisma.review.findMany({
+      where,
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { [sortBy]: order },
       include: {
         pullRequest: {
           include: { repository: true },
         },
       },
     }),
-    prisma.review.count(),
+    prisma.review.count({ where }),
   ]);
 
   return {
     items: items.map(serializeReview),
-    total,
-    page,
-    limit,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      hasNextPage: page * limit < total,
+      hasPrevPage: page > 1,
+    },
   };
 }
 
