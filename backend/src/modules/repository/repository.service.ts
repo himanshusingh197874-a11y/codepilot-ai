@@ -6,6 +6,10 @@ import {
   deleteWebhook,
 } from '../../providers/github/github.webhook';
 import { listOpenPullRequests } from '../../providers/github/github.pulls';
+import {
+  ReviewPipelineError,
+  runPullRequestReview,
+} from '../webhook/webhook.service';
 import * as repositoryRepository from './repository.repository';
 
 export async function syncRepositories(request: FastifyRequest) {
@@ -168,4 +172,40 @@ export async function getOpenPullRequests(
     repository.owner,
     repository.name,
   );
+}
+
+export async function triggerPullRequestReview(
+  request: FastifyRequest<{ Params: { id: string; number: string } }>,
+) {
+  const user = request.user as { sub: string };
+  const pullNumber = Number(request.params.number);
+
+  if (!Number.isInteger(pullNumber) || pullNumber <= 0) {
+    throw new ReviewPipelineError('Pull request not found', 404);
+  }
+
+  const repository = await repositoryRepository.findRepositoryById(
+    request.params.id,
+    user.sub,
+  );
+
+  if (!repository) {
+    throw new ReviewPipelineError('Repository not found', 404);
+  }
+
+  const githubAccount = await repositoryRepository.findGithubAccountByUserId(
+    user.sub,
+  );
+
+  if (!githubAccount) {
+    throw new ReviewPipelineError('AI review failed', 500);
+  }
+
+  const review = await runPullRequestReview({
+    repository,
+    accessToken: githubAccount.accessToken,
+    pullNumber,
+  });
+
+  return { reviewId: review.id, message: 'AI review completed' };
 }
