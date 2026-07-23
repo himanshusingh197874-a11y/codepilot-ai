@@ -6,6 +6,7 @@ import {
   getReviewStats,
 } from './review.repository';
 import { reviewListQuerySchema } from './review.schema';
+import { getReviewDetails } from './review.service';
 
 export async function getReviews(
   request: FastifyRequest,
@@ -47,4 +48,19 @@ export async function getStats(
   const stats = await getReviewStats();
 
   return reply.send(stats);
+}
+
+export async function getReviewByIdController(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply,
+) {
+  const review = await getReviewDetails(request.params.id);
+
+  if (!review) {
+    return reply.code(404).send({
+      message: 'Review not found',
+    });
+  }
+
+  return reply.send(review);
 }

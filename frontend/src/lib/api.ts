@@ -40,6 +40,30 @@ export interface ReviewListResponse {
   limit: number;
 }
 
+export type FindingSeverity = 'high' | 'medium' | 'low' | string;
+
+export interface ReviewFinding {
+  id: string;
+  path: string;
+  line: number;
+  message: string;
+  severity: FindingSeverity;
+  codeSnippet?: string;
+}
+
+export interface ReviewDetail {
+  id: string;
+  repository: string;
+  score: number;
+  summary: string;
+  createdAt: string;
+  pullRequest: {
+    number: number;
+    title: string;
+  };
+  findings: ReviewFinding[];
+}
+
 export async function fetchReviews(page = 1, limit = 10) {
   const res = await api.get<ReviewListResponse>(
     `/reviews?page=${page}&limit=${limit}`,
@@ -49,7 +73,7 @@ export async function fetchReviews(page = 1, limit = 10) {
 }
 
 export async function fetchReview(id: string) {
-  const res = await api.get(`/reviews/${id}`);
+  const res = await api.get<ReviewDetail>(`/reviews/${id}`);
   return res.data;
 }
 
