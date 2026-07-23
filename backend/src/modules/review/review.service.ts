@@ -1,13 +1,5 @@
 import { getReviewById } from './review.repository';
 
-type ReviewComment = {
-  id: string;
-  path: string;
-  line: number;
-  body: string;
-  severity: string;
-};
-
 export async function getReviewDetails(id: string) {
   const review = await getReviewById(id);
 
@@ -15,28 +7,30 @@ export async function getReviewDetails(id: string) {
     return null;
   }
 
+  const pullRequest = review.pullRequest;
+  const repository = pullRequest?.repository;
+
   return {
     id: review.id,
     score: review.score,
     summary: review.summary,
     createdAt: review.createdAt,
 
-    repository: review.pullRequest.repository.fullName,
+    repository: repository?.fullName ?? 'Unknown repository',
 
     pullRequest: {
-      number: review.pullRequest.number,
-      title: review.pullRequest.title,
+      number: pullRequest?.number ?? 0,
+      title: pullRequest?.title ?? 'Unknown PR',
+      state: pullRequest?.state ?? 'unknown',
     },
 
-    // Review comments are the persisted findings produced by the review
-    // pipeline. Keeping this mapping here makes it safe to add a dedicated
-    // findings model later without changing the API contract.
-    findings: (review.comments as ReviewComment[]).map((comment) => ({
-      id: comment.id,
-      path: comment.path,
-      line: comment.line,
-      message: comment.body,
-      severity: comment.severity,
+    findings: (review.findings ?? []).map((finding) => ({
+      id: finding.id,
+      severity: finding.severity,
+      filePath: finding.filePath,
+      lineNumber: finding.lineNumber,
+      message: finding.message,
+      suggestion: finding.suggestion,
     })),
   };
 }

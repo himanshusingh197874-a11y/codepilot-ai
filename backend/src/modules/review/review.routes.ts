@@ -41,24 +41,30 @@ export default async function reviewRoutes(app: FastifyInstance) {
               createdAt: { type: 'string', format: 'date-time' },
               pullRequest: {
                 type: 'object',
-                required: ['number', 'title'],
+                required: ['number', 'title', 'state'],
                 properties: {
                   number: { type: 'integer' },
                   title: { type: 'string' },
+                  state: { type: 'string' },
                 },
               },
               findings: {
                 type: 'array',
                 items: {
                   type: 'object',
-                  required: ['id', 'path', 'line', 'message', 'severity'],
+                  required: [
+                    'id',
+                    'filePath',
+                    'message',
+                    'severity',
+                  ],
                   properties: {
                     id: { type: 'string' },
-                    path: { type: 'string' },
-                    line: { type: 'integer' },
+                    filePath: { type: 'string' },
+                    lineNumber: { type: 'integer', nullable: true },
                     message: { type: 'string' },
                     severity: { type: 'string' },
-                    codeSnippet: { type: 'string' },
+                    suggestion: { type: 'string', nullable: true },
                   },
                 },
               },

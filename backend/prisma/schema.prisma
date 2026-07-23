@@ -88,6 +88,7 @@ model Review {
 
   pullRequest PullRequest @relation(fields: [pullRequestId], references: [id])
   comments    ReviewComment[]
+  findings    Finding[]
 
   createdAt DateTime @default(now())
 }
@@ -103,4 +104,19 @@ model ReviewComment {
   createdAt DateTime @default(now())
 
   review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+}
+
+model Finding {
+  id         String   @id @default(cuid())
+  reviewId   String
+  severity   String
+  filePath   String
+  lineNumber Int?
+  message    String
+  suggestion String?
+  createdAt  DateTime @default(now())
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
 }
