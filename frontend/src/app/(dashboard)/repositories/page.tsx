@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import api from '@/lib/api';
 
 type Repository = {
@@ -42,8 +43,9 @@ export default function RepositoriesPage() {
 
       <div className="grid gap-4">
         {repositories.map((repo) => (
-          <div
+          <Link
             key={repo.id}
+            href={`/repositories/${repo.id}`}
             className="border rounded-lg p-4 bg-white shadow-sm"
           >
             <div className="font-semibold">{repo.fullName}</div>
@@ -60,7 +62,7 @@ export default function RepositoriesPage() {
                 {repo.enabled ? 'Enabled' : 'Disabled'}
               </span>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

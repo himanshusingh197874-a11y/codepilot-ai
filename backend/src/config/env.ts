@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+const urlSchema = z.string().url();
+
 const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
 
@@ -11,8 +13,17 @@ const envSchema = z.object({
 
   GITHUB_CLIENT_ID: z.string(),
   GITHUB_CLIENT_SECRET: z.string(),
-  GITHUB_CALLBACK_URL: z.string().url(),
-  APP_URL: z.string().url(),
-});
+  GITHUB_CALLBACK_URL: urlSchema,
+
+  // APP_URL remains a fallback for existing deployments.
+  APP_URL: urlSchema.optional(),
+  FRONTEND_URL: urlSchema.optional(),
+  PUBLIC_API_URL: urlSchema.optional(),
+}).transform((value) => ({
+  ...value,
+  FRONTEND_URL: value.FRONTEND_URL ?? value.APP_URL ?? 'http://localhost:3000',
+  PUBLIC_API_URL:
+    value.PUBLIC_API_URL ?? value.APP_URL ?? 'http://localhost:3001',
+}));
 
 export const env = envSchema.parse(process.env);

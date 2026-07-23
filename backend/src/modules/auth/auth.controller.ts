@@ -19,7 +19,7 @@ export async function githubCallback(
 
   const result = await authService.loginWithGithub(request.server, code);
 
-  const callbackUrl = new URL("/auth/callback", env.APP_URL);
+  const callbackUrl = new URL("/auth/callback", env.FRONTEND_URL);
   callbackUrl.searchParams.set("accessToken", result.accessToken);
 
   return reply.redirect(callbackUrl.toString());
