@@ -6,8 +6,14 @@ import { fetchReview, ReviewDetail } from '@/lib/api';
 
 const severityClasses: Record<string, string> = {
   high: 'bg-red-100 text-red-700',
-  medium: 'bg-amber-100 text-amber-700',
-  low: 'bg-blue-100 text-blue-700',
+  medium: 'bg-yellow-100 text-yellow-700',
+  low: 'bg-green-100 text-green-700',
+};
+
+const pullRequestStateClasses: Record<string, string> = {
+  open: 'bg-green-100 text-green-700',
+  closed: 'bg-gray-100 text-gray-700',
+  merged: 'bg-purple-100 text-purple-700',
 };
 
 export default function ReviewDetailPage() {
@@ -37,7 +43,7 @@ export default function ReviewDetailPage() {
     };
   }, [params.id]);
 
-  if (loading) return <div className="p-6 text-gray-600">Loading review…</div>;
+  if (loading) return <div className="p-6 text-gray-600">Loading review...</div>;
 
   if (error || !review) {
     return (
@@ -50,24 +56,39 @@ export default function ReviewDetailPage() {
     );
   }
 
+  const pullRequest = review.pullRequest ?? {
+    number: 0,
+    title: 'Unknown PR',
+    state: 'unknown',
+  };
+  const findings = review.findings ?? [];
+  const state = pullRequest.state.toLowerCase();
+
   return (
     <div className="space-y-6 p-6">
       <button onClick={() => router.push('/reviews')} className="text-sm text-gray-600 hover:text-gray-900">
-        ← Back to reviews
+        Back to reviews
       </button>
 
       <section className="rounded-xl border bg-white p-6 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-gray-500">{review.repository}</p>
+            <p className="text-sm font-medium text-gray-500">
+              {review.repository ?? 'Unknown repository'}
+            </p>
             <h1 className="mt-1 text-2xl font-bold text-gray-900">
-              PR #{review.pullRequest.number}: {review.pullRequest.title}
+              PR #{pullRequest.number}: {pullRequest.title}
             </h1>
             <p className="mt-2 text-sm text-gray-500">Reviewed on {new Date(review.createdAt).toLocaleString()}</p>
           </div>
-          <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
-            {review.score.toFixed(1)}/10
-          </span>
+          <div className="flex flex-wrap justify-end gap-2">
+            <span className={`rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-wide ${pullRequestStateClasses[state] ?? 'bg-gray-100 text-gray-700'}`}>
+              {pullRequest.state}
+            </span>
+            <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
+              {review.score.toFixed(1)}/10
+            </span>
+          </div>
         </div>
       </section>
 
@@ -79,23 +100,29 @@ export default function ReviewDetailPage() {
       <section className="rounded-xl border bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Findings</h2>
-          <span className="text-sm text-gray-500">{review.findings.length} finding{review.findings.length === 1 ? '' : 's'}</span>
+          <span className="text-sm text-gray-500">{findings.length} finding{findings.length === 1 ? '' : 's'}</span>
         </div>
-        {review.findings.length === 0 ? (
+        {findings.length === 0 ? (
           <div className="rounded-lg border border-dashed p-6 text-center text-gray-500">No findings were recorded for this review.</div>
         ) : (
           <div className="space-y-4">
-            {review.findings.map((finding) => (
+            {findings.map((finding) => (
               <article key={finding.id} className="rounded-lg border p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <code className="text-sm font-medium text-gray-800">{finding.path}:{finding.line}</code>
+                  <code className="text-sm font-medium text-gray-800">
+                    {finding.filePath}
+                    {finding.lineNumber != null ? `:${finding.lineNumber}` : ''}
+                  </code>
                   <span className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${severityClasses[finding.severity.toLowerCase()] ?? 'bg-gray-100 text-gray-700'}`}>
                     {finding.severity}
                   </span>
                 </div>
                 <p className="mt-3 text-sm text-gray-700">{finding.message}</p>
-                {finding.codeSnippet && (
-                  <pre className="mt-4 overflow-x-auto rounded-lg bg-gray-950 p-4 text-sm text-gray-100"><code>{finding.codeSnippet}</code></pre>
+                {finding.suggestion && (
+                  <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+                    <span className="font-semibold text-gray-900">Suggestion: </span>
+                    {finding.suggestion}
+                  </div>
                 )}
               </article>
             ))}

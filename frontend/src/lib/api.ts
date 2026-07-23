@@ -40,28 +40,27 @@ export interface ReviewListResponse {
   limit: number;
 }
 
-export type FindingSeverity = 'high' | 'medium' | 'low' | string;
-
-export interface ReviewFinding {
+export interface Finding {
   id: string;
-  path: string;
-  line: number;
+  severity: string;
+  filePath: string;
+  lineNumber?: number | null;
   message: string;
-  severity: FindingSeverity;
-  codeSnippet?: string;
+  suggestion?: string | null;
 }
 
 export interface ReviewDetail {
   id: string;
-  repository: string;
+  repository?: string;
   score: number;
   summary: string;
   createdAt: string;
-  pullRequest: {
+  pullRequest?: {
     number: number;
     title: string;
+    state: string;
   };
-  findings: ReviewFinding[];
+  findings?: Finding[];
 }
 
 export async function fetchReviews(page = 1, limit = 10) {
