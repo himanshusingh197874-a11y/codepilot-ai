@@ -5,7 +5,6 @@ import { shouldIgnoreFile } from '../ai/review.config';
 import { formatReviewComment } from '../ai/review.formatter';
 import { saveReview } from '../ai/review.repository';
 import { saveReviewComments } from '../ai/review-comment.repository';
-import { createFindings } from '../review/review.repository';
 import { createInlineReview, InlineComment } from '../../providers/github/github.inline-review';
 import { createPullRequestReview } from '../../providers/github/github.review';
 
@@ -108,17 +107,6 @@ export async function runPullRequestReview({
       state: pullRequest.state,
       reviews,
     });
-
-    // TODO: Remove this temporary verification seed once AI findings are persisted.
-    await createFindings(savedReview.id, [
-      {
-        severity: 'medium',
-        filePath: 'src/app/page.tsx',
-        lineNumber: 42,
-        message: 'Potential null access.',
-        suggestion: 'Add optional chaining before property access.',
-      },
-    ]);
 
     await saveReviewComments({
       reviewId: savedReview.id,
