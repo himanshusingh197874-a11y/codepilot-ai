@@ -51,3 +51,11 @@ export async function getRepositoryByIdController(
 
   return reply.send(repository);
 }
+
+export async function getOpenPullRequestsController(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply,
+) {
+  const prs = await repositoryService.getOpenPullRequests(request);
+  return reply.send(prs);
+}

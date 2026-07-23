@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import api from '@/lib/api';
+import api, { fetchRepositoryPulls } from '@/lib/api';
 
 type RecentReview = {
   id: string;
@@ -23,20 +23,29 @@ type RepositoryDetails = {
   recentReviews: RecentReview[];
 };
 
+type PullRequest = {
+  number: number;
+  title: string;
+  state: string;
+};
+
 export default function RepositoryDetailsPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [repository, setRepository] = useState<RepositoryDetails | null>(null);
+  const [pulls, setPulls] = useState<PullRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     async function loadRepository() {
       try {
-        const response = await api.get<RepositoryDetails>(
-          `/repositories/${params.id}`,
-        );
+        const [response, openPullRequests] = await Promise.all([
+          api.get<RepositoryDetails>(`/repositories/${params.id}`),
+          fetchRepositoryPulls(params.id) as Promise<PullRequest[]>,
+        ]);
         setRepository(response.data);
+        setPulls(openPullRequests);
       } catch (err) {
         const status = (err as { response?: { status?: number } }).response
           ?.status;
@@ -120,6 +129,37 @@ export default function RepositoryDetailsPage() {
             {repository.averageScore.toFixed(1)}/10
           </p>
         </div>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="mb-4 text-xl font-semibold">Open Pull Requests</h2>
+
+        {pulls.length === 0 ? (
+          <p className="text-gray-500">No open pull requests.</p>
+        ) : (
+          <div className="space-y-3">
+            {pulls.map((pr) => (
+              <div
+                key={pr.number}
+                className="flex items-center justify-between rounded-lg border p-4"
+              >
+                <div>
+                  <p className="font-medium">
+                    #{pr.number} {pr.title}
+                  </p>
+                  <p className="text-sm capitalize text-gray-500">{pr.state}</p>
+                </div>
+
+                <button
+                  disabled
+                  className="cursor-not-allowed rounded bg-gray-200 px-4 py-2 text-gray-600"
+                >
+                  Run AI Review
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="rounded-xl border bg-white p-6 shadow-sm">
