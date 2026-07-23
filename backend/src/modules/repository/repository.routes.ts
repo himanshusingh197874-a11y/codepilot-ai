@@ -21,6 +21,14 @@ export default async function repositoryRoutes(
     repositoryController.listRepositories,
   );
 
+  app.get<{ Params: { id: string } }>(
+    "/:id",
+    {
+      preHandler: [app.authenticate],
+    },
+    repositoryController.getRepositoryByIdController,
+  );
+
   app.patch(
   "/:id/enable",
   {

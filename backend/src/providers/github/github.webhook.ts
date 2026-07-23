@@ -1,4 +1,5 @@
 import { Octokit } from "@octokit/rest";
+import { env } from "../../config/env";
 
 export async function createWebhook(
   accessToken: string,
@@ -14,7 +15,7 @@ export async function createWebhook(
     repo,
 
     config: {
-      url: `${process.env.APP_URL}/api/v1/webhooks/github`,
+      url: `${env.PUBLIC_API_URL}/api/v1/webhooks/github`,
       content_type: "json",
       secret: process.env.WEBHOOK_SECRET!,
       insecure_ssl: "0",

@@ -48,14 +48,26 @@ export async function getRepositories(userId: string) {
   });
 }
 
+
+
 export async function findRepositoryById(
-  repositoryId: string,
+  id: string,
   userId: string,
-) {
-  return prisma.repository.findFirst({
-    where: {
-      id: repositoryId,
-      userId,
+) 
+
+{
+  return prisma.repository.findUnique({
+    where: { id, userId,},
+    include: {
+      pullRequests: {
+        include: {
+          reviews: {
+            orderBy: { createdAt: 'desc' },
+            take: 10,
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+      },
     },
   });
 }
@@ -85,6 +97,27 @@ export async function clearWebhook(
     data: {
       enabled: false,
       webhookId: null,
+    },
+  });
+}
+
+export async function findRepositoryWithReviews(
+  id: string,
+  userId?: string,
+) {
+  return prisma.repository.findFirst({
+    where: {
+      id,
+      ...(userId ? { userId } : {}),
+    },
+    include: {
+      pullRequests: {
+        include: {
+          reviews: {
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      },
     },
   });
 }
