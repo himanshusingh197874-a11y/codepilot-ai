@@ -58,4 +58,9 @@ export async function fetchReviewStats() {
   return res.data;
 }
 
+export async function fetchRepositoryPulls(id: string) {
+  const res = await api.get(`/repositories/${id}/pulls`);
+  return res.data;
+}
+
 export default api;

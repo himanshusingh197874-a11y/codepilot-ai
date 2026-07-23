@@ -5,7 +5,7 @@ import {
   createWebhook,
   deleteWebhook,
 } from '../../providers/github/github.webhook';
-
+import { listOpenPullRequests } from '../../providers/github/github.pulls';
 import * as repositoryRepository from './repository.repository';
 
 export async function syncRepositories(request: FastifyRequest) {
@@ -142,4 +142,30 @@ export async function getRepositoryDetails(id: string, userId?: string) {
       createdAt: review.createdAt,
     })),
   };
+}
+
+export async function getOpenPullRequests(
+  request: FastifyRequest<{ Params: { id: string } }>,
+) {
+  const user = request.user as { sub: string };
+  const { id } = request.params;
+
+  const repository = await repositoryRepository.findRepositoryById(id, user.sub);
+
+  if (!repository) {
+    throw new Error('Repository not found');
+  }
+
+  const githubAccount =
+    await repositoryRepository.findGithubAccountByUserId(user.sub);
+
+  if (!githubAccount) {
+    throw new Error('Github account not connected');
+  }
+
+  return listOpenPullRequests(
+    githubAccount.accessToken,
+    repository.owner,
+    repository.name,
+  );
 }

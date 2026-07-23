@@ -22,6 +22,12 @@ export default async function repositoryRoutes(
   );
 
   app.get<{ Params: { id: string } }>(
+  '/:id/pulls',
+  { preHandler: [app.authenticate] },
+  repositoryController.getOpenPullRequestsController,
+);
+
+  app.get<{ Params: { id: string } }>(
     "/:id",
     {
       preHandler: [app.authenticate],
@@ -57,4 +63,6 @@ app.patch(
   repositoryController.disableRepository,
 );
 }
+
+
 
