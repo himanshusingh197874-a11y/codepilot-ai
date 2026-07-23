@@ -1,60 +1,47 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance } from 'fastify';
+import {
+  syncRepositories,
+  listRepositories,
+  enableRepository,
+  disableRepository,
+  getRepositoryByIdController,
+  getRepositoryTrendController,
+} from './repository.controller';
 
-import * as repositoryController from "./repository.controller";
-
-export default async function repositoryRoutes(
-  app: FastifyInstance,
-) {
-  app.post(
-    "/sync",
-    {
-      preHandler: [app.authenticate],
-    },
-    repositoryController.syncRepositories,
+export async function repositoryRoutes(fastify: FastifyInstance) {
+  fastify.post(
+    '/sync',
+    { preHandler: [fastify.authenticate] },
+    syncRepositories,
   );
 
-  app.get(
-    "/",
-    {
-      preHandler: [app.authenticate],
-    },
-    repositoryController.listRepositories,
+  fastify.get(
+    '/',
+    { preHandler: [fastify.authenticate] },
+    listRepositories,
   );
 
-  app.get<{ Params: { id: string } }>(
-    "/:id",
-    {
-      preHandler: [app.authenticate],
-    },
-    repositoryController.getRepositoryByIdController,
+  fastify.get<{ Params: { id: string } }>(
+    '/:id',
+    { preHandler: [fastify.authenticate] },
+    getRepositoryByIdController,
   );
 
-  app.patch(
-  "/:id/enable",
-  {
-    preHandler: [app.authenticate],
+  fastify.get<{ Params: { id: string } }>(
+    '/:id/trend',
+    { preHandler: [fastify.authenticate] },
+    getRepositoryTrendController,
+  );
 
-    schema: {
-      tags: ["Repositories"],
-      summary: "Enable AI review",
-      security: [{ bearerAuth: [] }],
-    },
-  },
-  repositoryController.enableRepository,
-);
+  fastify.patch<{ Params: { id: string } }>(
+    '/:id/enable',
+    { preHandler: [fastify.authenticate] },
+    enableRepository,
+  );
 
-app.patch(
-  "/:id/disable",
-  {
-    preHandler: [app.authenticate],
-
-    schema: {
-      tags: ["Repositories"],
-      summary: "Disable AI review",
-      security: [{ bearerAuth: [] }],
-    },
-  },
-  repositoryController.disableRepository,
-);
+  fastify.patch<{ Params: { id: string } }>(
+    '/:id/disable',
+    { preHandler: [fastify.authenticate] },
+    disableRepository,
+  );
 }
-

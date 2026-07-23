@@ -2,13 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import api from '@/lib/api';
+import { fetchRepository } from '@/lib/api';
 
 type RecentReview = {
   id: string;
   score: number;
   summary: string;
   createdAt: string;
+  pullRequest?: {
+    number: number;
+    title: string;
+  };
+};
+
+type ScoreDistributionItem = {
+  score: number;
+  count: number;
 };
 
 type RepositoryDetails = {
@@ -18,8 +27,10 @@ type RepositoryDetails = {
   name: string;
   defaultBranch: string;
   enabled: boolean;
+  totalPullRequests: number;
   totalReviews: number;
   averageScore: number;
+  scoreDistribution: ScoreDistributionItem[];
   recentReviews: RecentReview[];
 };
 
@@ -33,10 +44,8 @@ export default function RepositoryDetailsPage() {
   useEffect(() => {
     async function loadRepository() {
       try {
-        const response = await api.get<RepositoryDetails>(
-          `/repositories/${params.id}`,
-        );
-        setRepository(response.data);
+        const data = await fetchRepository<RepositoryDetails>(params.id);
+        setRepository(data);
       } catch (err) {
         const status = (err as { response?: { status?: number } }).response
           ?.status;
@@ -107,7 +116,13 @@ export default function RepositoryDetailsPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border bg-white p-5 shadow-sm">
+          <p className="text-sm font-medium text-gray-500">Total PRs</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">
+            {repository.totalPullRequests}
+          </p>
+        </div>
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <p className="text-sm font-medium text-gray-500">Total reviews</p>
           <p className="mt-2 text-3xl font-bold text-gray-900">
@@ -119,6 +134,32 @@ export default function RepositoryDetailsPage() {
           <p className="mt-2 text-3xl font-bold text-gray-900">
             {repository.averageScore.toFixed(1)}/10
           </p>
+        </div>
+      </section>
+
+      <section className="rounded-xl border bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Score distribution
+        </h2>
+        <div className="mt-4 space-y-3">
+          {repository.scoreDistribution.map(({ score, count }) => (
+            <div key={score} className="grid grid-cols-[3rem_1fr_2rem] items-center gap-3">
+              <span className="text-sm text-gray-600">{score}/5</span>
+              <div className="h-2 overflow-hidden rounded bg-gray-100">
+                <div
+                  className="h-full rounded bg-blue-600"
+                  style={{
+                    width: `${
+                      repository.totalReviews === 0
+                        ? 0
+                        : (count / repository.totalReviews) * 100
+                    }%`,
+                  }}
+                />
+              </div>
+              <span className="text-right text-sm text-gray-600">{count}</span>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -143,6 +184,11 @@ export default function RepositoryDetailsPage() {
                 <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">
                   {review.summary}
                 </p>
+                {review.pullRequest && (
+                  <p className="mt-2 text-sm text-gray-500">
+                    PR #{review.pullRequest.number}: {review.pullRequest.title}
+                  </p>
+                )}
               </article>
             ))}
           </div>

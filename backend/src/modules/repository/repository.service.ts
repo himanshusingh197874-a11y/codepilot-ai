@@ -104,7 +104,7 @@ export async function disableRepository(request: FastifyRequest) {
   return repositoryRepository.clearWebhook(repository.id);
 }
 
-export async function getRepositoryDetails(id: string, userId?: string) {
+export async function getRepositoryDetails(id: string, userId: string) {
   const repository = await repositoryRepository.findRepositoryWithReviews(
     id,
     userId,
@@ -119,12 +119,20 @@ export async function getRepositoryDetails(id: string, userId?: string) {
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   const totalReviews = allReviews.length;
+  const totalPullRequests = repository.pullRequests.length;
 
   const averageScore =
     totalReviews === 0
       ? 0
       : allReviews.reduce((sum, review) => sum + review.score, 0) /
         totalReviews;
+
+  const scoreDistribution = Array.from({ length: 6 }, (_, score) => ({
+    score,
+    count: allReviews.filter(
+      (review) => Math.max(0, Math.min(5, Math.round(review.score))) === score,
+    ).length,
+  }));
 
   return {
     id: repository.id,
@@ -133,13 +141,24 @@ export async function getRepositoryDetails(id: string, userId?: string) {
     name: repository.name,
     defaultBranch: repository.defaultBranch,
     enabled: repository.enabled,
+    totalPullRequests,
     totalReviews,
     averageScore: Number(averageScore.toFixed(1)),
-    recentReviews: allReviews.slice(0, 10).map((review) => ({
-      id: review.id,
-      score: review.score,
-      summary: review.summary,
-      createdAt: review.createdAt,
-    })),
+    scoreDistribution,
+    recentReviews: allReviews.slice(0, 10).map((review) => {
+      const pullRequest = repository.pullRequests.find((pr) =>
+        pr.reviews.some((prReview) => prReview.id === review.id),
+      );
+
+      return {
+        id: review.id,
+        score: review.score,
+        summary: review.summary,
+        createdAt: review.createdAt,
+        pullRequest: pullRequest
+          ? { number: pullRequest.number, title: pullRequest.title }
+          : undefined,
+      };
+    }),
   };
 }

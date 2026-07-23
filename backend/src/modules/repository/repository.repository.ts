@@ -103,12 +103,12 @@ export async function clearWebhook(
 
 export async function findRepositoryWithReviews(
   id: string,
-  userId?: string,
+  userId: string,
 ) {
   return prisma.repository.findFirst({
     where: {
       id,
-      ...(userId ? { userId } : {}),
+      userId,
     },
     include: {
       pullRequests: {

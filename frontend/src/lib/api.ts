@@ -58,4 +58,14 @@ export async function fetchReviewStats() {
   return res.data;
 }
 
+export async function fetchRepository<T>(id: string) {
+  const res = await api.get<T>(`/repositories/${id}`);
+  return res.data;
+}
+
+export async function fetchRepositoryTrend(repoId: string) {
+  const res = await api.get(`/repositories/${repoId}/trend`);
+  return res.data;
+}
+
 export default api;

@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import * as repositoryService from './repository.service';
+import { getRepositoryReviewTrend } from './repository.analytics';
 
 export async function syncRepositories(
   request: FastifyRequest,
@@ -50,4 +51,12 @@ export async function getRepositoryByIdController(
   }
 
   return reply.send(repository);
+}
+
+export async function getRepositoryTrendController(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply,
+) {
+  const trend = await getRepositoryReviewTrend(request.params.id);
+  return reply.send(trend);
 }
