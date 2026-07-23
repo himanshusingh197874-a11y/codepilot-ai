@@ -63,4 +63,14 @@ export async function fetchRepositoryPulls(id: string) {
   return res.data;
 }
 
+export async function triggerPullRequestReview(
+  repoId: string,
+  prNumber: number,
+) {
+  const res = await api.post(
+    `/repositories/${repoId}/pulls/${prNumber}/review`,
+  );
+  return res.data;
+}
+
 export default api;

@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import api, { fetchRepositoryPulls } from '@/lib/api';
+import api, {
+  fetchRepositoryPulls,
+  triggerPullRequestReview,
+} from '@/lib/api';
 
 type RecentReview = {
   id: string;
@@ -34,6 +37,9 @@ export default function RepositoryDetailsPage() {
   const router = useRouter();
   const [repository, setRepository] = useState<RepositoryDetails | null>(null);
   const [pulls, setPulls] = useState<PullRequest[]>([]);
+  const [reviewingPrNumber, setReviewingPrNumber] = useState<number | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -63,6 +69,29 @@ export default function RepositoryDetailsPage() {
       loadRepository();
     }
   }, [params.id]);
+
+  async function handleRunReview(prNumber: number) {
+    setReviewingPrNumber(prNumber);
+
+    try {
+      const result = await triggerPullRequestReview(params.id, prNumber);
+      alert(`AI review completed. Review ID: ${result.reviewId}`);
+
+      const [response, openPullRequests] = await Promise.all([
+        api.get<RepositoryDetails>(`/repositories/${params.id}`),
+        fetchRepositoryPulls(params.id) as Promise<PullRequest[]>,
+      ]);
+      setRepository(response.data);
+      setPulls(openPullRequests);
+    } catch (err) {
+      const message =
+        (err as { response?: { data?: { message?: string } } }).response?.data
+          ?.message ?? 'Failed to run AI review.';
+      alert(message);
+    } finally {
+      setReviewingPrNumber(null);
+    }
+  }
 
   if (loading) {
     return <div className="p-6">Loading repository…</div>;
@@ -151,10 +180,17 @@ export default function RepositoryDetailsPage() {
                 </div>
 
                 <button
-                  disabled
-                  className="cursor-not-allowed rounded bg-gray-200 px-4 py-2 text-gray-600"
+                  disabled={reviewingPrNumber !== null}
+                  onClick={() => handleRunReview(pr.number)}
+                  className={
+                    reviewingPrNumber !== null
+                      ? 'cursor-not-allowed rounded bg-gray-200 px-4 py-2 text-gray-600'
+                      : 'rounded bg-gray-900 px-4 py-2 text-white hover:bg-gray-700'
+                  }
                 >
-                  Run AI Review
+                  {reviewingPrNumber === pr.number
+                    ? 'Running AI Review…'
+                    : 'Run AI Review'}
                 </button>
               </div>
             ))}

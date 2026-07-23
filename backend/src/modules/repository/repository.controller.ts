@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import * as repositoryService from './repository.service';
+import { ReviewPipelineError } from '../webhook/webhook.service';
 
 export async function syncRepositories(
   request: FastifyRequest,
@@ -58,4 +59,20 @@ export async function getOpenPullRequestsController(
 ) {
   const prs = await repositoryService.getOpenPullRequests(request);
   return reply.send(prs);
+}
+
+export async function triggerPullRequestReviewController(
+  request: FastifyRequest<{ Params: { id: string; number: string } }>,
+  reply: FastifyReply,
+) {
+  try {
+    const result = await repositoryService.triggerPullRequestReview(request);
+    return reply.send(result);
+  } catch (error) {
+    if (error instanceof ReviewPipelineError) {
+      return reply.code(error.statusCode).send({ message: error.message });
+    }
+
+    return reply.code(500).send({ message: 'AI review failed' });
+  }
 }

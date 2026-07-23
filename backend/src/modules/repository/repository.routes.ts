@@ -27,6 +27,12 @@ export default async function repositoryRoutes(
   repositoryController.getOpenPullRequestsController,
 );
 
+  app.post<{ Params: { id: string; number: string } }>(
+    '/:id/pulls/:number/review',
+    { preHandler: [app.authenticate] },
+    repositoryController.triggerPullRequestReviewController,
+  );
+
   app.get<{ Params: { id: string } }>(
     "/:id",
     {

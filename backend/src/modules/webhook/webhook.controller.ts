@@ -1,21 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { FastifyReply, FastifyRequest } from 'fastify';
-
-import { fetchPullRequestFiles } from '../pr/pr.service';
-import { getPullRequest } from '../pr/pr.github';
-import { extractAddedLinesWithNumbers } from '../pr/diff.parser';
-
-import { reviewPatch, analyzeLine } from '../ai/ai.service';
-import { shouldIgnoreFile } from '../ai/review.config';
-import { formatReviewComment } from '../ai/review.formatter';
-import { saveReview } from '../ai/review.repository';
-import { saveReviewComments } from '../ai/review-comment.repository';
-
-import { createPullRequestReview } from '../../providers/github/github.review';
-import {
-  createInlineReview,
-  InlineComment,
-} from '../../providers/github/github.inline-review';
+import { runPullRequestReview } from './webhook.service';
 
 export async function githubWebhook(
   request: FastifyRequest,
@@ -24,211 +9,34 @@ export async function githubWebhook(
   const event = request.headers['x-github-event'];
   const payload = request.body as any;
 
-  console.log('==============================');
-  console.log('GitHub Event:', event);
-  console.log('Action:', payload?.action);
-  console.log('Repository:', payload?.repository?.full_name);
-
-  if (event === 'pull_request') {
-    // Skip closed PRs
-    if (payload.action === 'closed') {
-      console.log('Skipping closed pull request');
-      return reply.send({ received: true, skipped: true });
-    }
-
-    console.log('PR EVENT RECEIVED');
-
-    const owner = payload.repository.owner.login;
-    const repo = payload.repository.name;
-    const pullNumber = payload.pull_request.number;
-
-    console.log({
-      action: payload.action,
-      repo: payload.repository.full_name,
-      prNumber: pullNumber,
-      title: payload.pull_request.title,
-    });
-
-    // Find repository in DB
-    const repository = await prisma.repository.findFirst({
-      where: { owner, name: repo },
-    });
-
-    if (!repository) {
-      console.log('Repository not found in database');
-      return reply.send({ received: true });
-    }
-
-    // Fetch changed files
-    const files = await fetchPullRequestFiles(
-      repository.userId,
-      owner,
-      repo,
-      pullNumber,
-    );
-
-    console.log(`Fetched ${files.length} changed files`);
-    if (files.length === 0) {
-  request.log.info('No changed files found, skipping AI review');
-
-  return reply.send({
-    received: true,
-    skipped: true,
-    reason: 'No changed files',
-  });
-}
-
-    // Get GitHub account
-    const githubAccount = await prisma.githubAccount.findUnique({
-      where: { userId: repository.userId },
-    });
-
-    if (!githubAccount) {
-      throw new Error('GitHub account not connected');
-    }
-
-    // Get latest commit SHA for inline comments
-    const pr = await getPullRequest(
-      githubAccount.accessToken,
-      owner,
-      repo,
-      pullNumber,
-    );
-
-    const latestCommitSha = pr.head.sha;
-
-    // Collect reviews and inline comments
-    const reviews = [];
-    const inlineComments: InlineComment[] = [];
-
-    for (const file of files) {
-      if (shouldIgnoreFile(file.filename)) {
-        console.log(`Skipping ignored file: ${file.filename}`);
-        continue;
-      }
-
-      console.log({
-        filename: file.filename,
-        status: file.status,
-        additions: file.additions,
-        deletions: file.deletions,
-      });
-
-      if (!file.patch) {
-        console.log('No patch available for file:', file.filename);
-        continue;
-      }
-
-      // Inline comments on added lines
-      const addedLines = extractAddedLinesWithNumbers(file.patch);
-
-      for (const addedLine of addedLines) {
-        const comment = analyzeLine(addedLine.content);
-
-        if (comment) {
-          console.log(
-            `Queueing inline comment for ${file.filename}:${addedLine.lineNumber}`,
-          );
-
-          inlineComments.push({
-            path: file.filename,
-            line: addedLine.lineNumber,
-            body: comment,
-          });
-        }
-      }
-
-      // Summary review for the file
-      const review = await reviewPatch(file.filename, file.patch);
-
-      reviews.push(review);
-
-      console.log('AI REVIEW RESULT');
-      console.log(JSON.stringify(review, null, 2));
-    }
-
-    // Post inline comments as a single review
-    if (inlineComments.length > 0) {
-      try {
-        await createInlineReview(
-          githubAccount.accessToken,
-          owner,
-          repo,
-          pullNumber,
-          latestCommitSha,
-          inlineComments,
-        );
-
-        console.log(`Posted ${inlineComments.length} inline comments`);
-      } catch (error) {
-        console.error('Inline review failed:', error);
-      }
-    }
-
-    // Post summary review
-    const reviewBody = formatReviewComment(reviews);
-
-    await createPullRequestReview(
-      githubAccount.accessToken,
-      owner,
-      repo,
-      pullNumber,
-      reviewBody,
-    );
-
-    console.log('Posted AI review to GitHub PR');
-
-    // Persist review in database
-    const savedReview = await saveReview({
-      repositoryId: repository.id,
-      githubPrId: BigInt(payload.pull_request.id),
-      number: pullNumber,
-      title: payload.pull_request.title,
-      state: payload.pull_request.state,
-      reviews,
-    });
-
-    const savedComments = await saveReviewComments({
-  reviewId: savedReview.id,
-  repositoryId: repository.id,
-  githubPrId: BigInt(payload.pull_request.id),
-  comments: inlineComments.map((comment) => ({
-    path: comment.path,
-    line: comment.line,
-    body: comment.body,
-    severity: 'warning',
-  })),
-});
-
-    request.log.info(
-      { savedComments },
-      'Saved review comments to database',
-    );
-
-    request.log.info(
-      {
-        reviewId: savedReview.id,
-        githubPrId: BigInt(payload.pull_request.id).toString(), // BigInt -> string
-        score: savedReview.score,
-      },
-      'Saved review to database',
-    );
-
-    console.log('==============================');
-
-    // IMPORTANT: return savedReview, not saveReview
-    return reply.send({
-      received: true,
-      review: {
-        id: savedReview.id,
-        summary: savedReview.summary,
-        score: savedReview.score,
-      },
-      commentsSaved: savedComments,
-    });
+  if (event !== 'pull_request' || payload.action === 'closed') {
+    return reply.send({ received: true, skipped: true });
   }
 
-  console.log('==============================');
+  const repository = await prisma.repository.findFirst({
+    where: {
+      owner: payload.repository.owner.login,
+      name: payload.repository.name,
+    },
+  });
 
-  return reply.send({ received: true });
+  if (!repository) {
+    return reply.send({ received: true, skipped: true });
+  }
+
+  const githubAccount = await prisma.githubAccount.findUnique({
+    where: { userId: repository.userId },
+  });
+
+  if (!githubAccount) {
+    throw new Error('Github account not connected');
+  }
+
+  const review = await runPullRequestReview({
+    repository,
+    accessToken: githubAccount.accessToken,
+    pullNumber: payload.pull_request.number,
+  });
+
+  return reply.send({ received: true, reviewId: review.id });
 }
