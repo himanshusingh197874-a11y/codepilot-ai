@@ -1,17 +1,7 @@
-import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { ReviewListQuery } from './review.schema';
 
-type ReviewWithRepository = Prisma.ReviewGetPayload<{
-  include: { pullRequest: { include: { repository: true } } };
-}>;
-
-type FindingInput = Pick<
-  Prisma.FindingCreateManyInput,
-  'severity' | 'filePath' | 'lineNumber' | 'message' | 'suggestion'
->;
-
-function serializeReview(review: ReviewWithRepository) {
+function serializeReview(review: any) {
   return {
     ...review,
     pullRequest: review.pullRequest
@@ -40,15 +30,16 @@ export async function listReviews(query: ReviewListQuery) {
 
   const skip = (page - 1) * limit;
 
-  const pullRequestWhere: Prisma.PullRequestWhereInput = {};
-  const where: Prisma.ReviewWhereInput = { pullRequest: pullRequestWhere };
+  const where: any = {
+    pullRequest: {},
+  };
 
   if (repositoryId) {
-    pullRequestWhere.repositoryId = repositoryId;
+    where.pullRequest.repositoryId = repositoryId;
   }
 
   if (state) {
-    pullRequestWhere.state = state;
+    where.pullRequest.state = state;
   }
 
   if (minScore !== undefined || maxScore !== undefined) {
@@ -100,31 +91,11 @@ export async function getReviewById(id: string) {
       pullRequest: {
         include: { repository: true },
       },
-      findings: true,
+      comments: true,
     },
   });
 
-  return review;
-}
-
-export async function createFindings(
-  reviewId: string,
-  findings: readonly FindingInput[],
-) {
-  if (findings.length === 0) {
-    return { count: 0 };
-  }
-
-  return prisma.finding.createMany({
-    data: findings.map((finding) => ({ ...finding, reviewId })),
-  });
-}
-
-export async function getFindingsByReviewId(reviewId: string) {
-  return prisma.finding.findMany({
-    where: { reviewId },
-    orderBy: { createdAt: 'asc' },
-  });
+  return review ? serializeReview(review) : null;
 }
 
 export async function getRepositoryReviews(repositoryId: string) {
@@ -133,7 +104,7 @@ export async function getRepositoryReviews(repositoryId: string) {
       pullRequest: { repositoryId },
     },
     orderBy: { createdAt: 'desc' },
-    include: { pullRequest: { include: { repository: true } } },
+    include: { pullRequest: true },
   });
 
   return reviews.map(serializeReview);
