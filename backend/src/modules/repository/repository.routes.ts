@@ -12,6 +12,14 @@ export default async function repositoryRoutes(
     },
     repositoryController.syncRepositories,
   );
+  
+  app.get<{ Params: { id: string } }>(
+  "/:id/insights",
+  {
+    preHandler: [app.authenticate],
+  },
+  repositoryController.getRepositoryInsightsController,
+);
 
   app.get(
     "/",

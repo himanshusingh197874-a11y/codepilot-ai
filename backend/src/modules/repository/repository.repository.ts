@@ -121,3 +121,27 @@ export async function findRepositoryWithReviews(
     },
   });
 }
+
+export async function getRepositoryInsightsData(
+  repositoryId: string,
+  userId: string,
+) {
+  return prisma.repository.findFirst({
+    where: {
+      id: repositoryId,
+      userId,
+    },
+
+    include: {
+      pullRequests: {
+        include: {
+          reviews: {
+            include: {
+              comments: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
