@@ -53,6 +53,20 @@ export async function getRepositoryByIdController(
   return reply.send(repository);
 }
 
+export async function getRepositoryInsightsController(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply,
+) {
+  const user = request.user as { sub: string };
+
+  const insights = await repositoryService.getRepositoryInsights(
+    request.params.id,
+    user.sub,
+  );
+
+  return reply.send(insights);
+}
+
 export async function getOpenPullRequestsController(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply,

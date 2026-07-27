@@ -12,6 +12,7 @@ import {
 } from '../webhook/webhook.service';
 import * as repositoryRepository from './repository.repository';
 
+
 export async function syncRepositories(request: FastifyRequest) {
   const user = request.user as { sub: string };
 
@@ -209,3 +210,65 @@ export async function triggerPullRequestReview(
 
   return { reviewId: review.id, message: 'AI review completed' };
 }
+
+export async function getRepositoryInsights(
+  repositoryId: string,
+  userId: string,
+) {
+  const repository =
+    await repositoryRepository.getRepositoryInsightsData(
+      repositoryId,
+      userId,
+    );
+
+  if (!repository) {
+    return null;
+  }
+
+  const reviews = repository.pullRequests.flatMap(pr => pr.reviews);
+
+  const totalReviews = reviews.length;
+
+  const averageScore =
+    totalReviews === 0
+      ? 0
+      : reviews.reduce((sum, review) => sum + review.score, 0) /
+        totalReviews;
+
+  const totalComments =
+    reviews.reduce(
+      (sum, review) => sum + review.comments.length,
+      0,
+    );
+
+  return {
+    repository: {
+      id: repository.id,
+      name: repository.name,
+      fullName: repository.fullName,
+    },
+
+    stats: {
+      totalPullRequests: repository.pullRequests.length,
+      totalReviews,
+      averageScore: Number(averageScore.toFixed(1)),
+      totalComments,
+    },
+
+    recentReviews: reviews
+      .sort(
+        (a, b) =>
+          b.createdAt.getTime() -
+          a.createdAt.getTime(),
+      )
+      .slice(0, 10)
+      .map(review => ({
+        id: review.id,
+        score: review.score,
+        summary: review.summary,
+        createdAt: review.createdAt,
+      })),
+  };
+}
+
+
