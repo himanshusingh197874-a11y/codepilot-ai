@@ -11,7 +11,7 @@ import {
   runPullRequestReview,
 } from '../webhook/webhook.service';
 import * as repositoryRepository from './repository.repository';
-
+import { getRepositoryDashboard } from './repository.repository';
 
 export async function syncRepositories(request: FastifyRequest) {
   const user = request.user as { sub: string };
@@ -270,5 +270,13 @@ export async function getRepositoryInsights(
       })),
   };
 }
+export async function getRepositoryDashboardService(id: string) {
+  const dashboard = await getRepositoryDashboard(id);
 
+  if (!dashboard) {
+    throw new Error('Repository not found');
+  }
+
+  return dashboard;
+}
 

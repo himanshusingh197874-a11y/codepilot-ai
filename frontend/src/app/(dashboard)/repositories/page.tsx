@@ -13,6 +13,7 @@ type Repository = {
 
 export default function RepositoriesPage() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,12 +38,30 @@ export default function RepositoriesPage() {
     return <div className="p-6">Loading repositories...</div>;
   }
 
+  const filteredRepositories = repositories.filter((repo) => {
+  const value = search.toLowerCase();
+
+  return (
+    repo.fullName.toLowerCase().includes(value) ||
+    repo.owner.toLowerCase().includes(value) ||
+    repo.name.toLowerCase().includes(value)
+  );
+});
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Repositories</h1>
-
+      <div className="flex items-center justify-between">
+  <input
+    type="text"
+    placeholder="Search repositories..."
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+    className="w-full max-w-md rounded-xl border px-4 py-2 shadow-sm focus:border-indigo-500 focus:outline-none"
+  />
+</div>
       <div className="grid gap-4">
-        {repositories.map((repo) => (
+        {filteredRepositories.map((repo) => (
           <Link
             key={repo.id}
             href={`/repositories/${repo.id}`}

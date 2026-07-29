@@ -111,15 +111,57 @@ export async function getRepositoryReviews(repositoryId: string) {
 }
 
 export async function getReviewStats() {
-  const [totalReviews, avgScore, totalComments] = await Promise.all([
+  const [
+    totalReviews,
+    avgScore,
+    totalComments,
+    activeRepositories,
+    highIssues,
+    mediumIssues,
+    lowIssues,
+  ] = await Promise.all([
     prisma.review.count(),
-    prisma.review.aggregate({ _avg: { score: true } }),
+
+    prisma.review.aggregate({
+      _avg: {
+        score: true,
+      },
+    }),
+
     prisma.reviewComment.count(),
+
+    prisma.repository.count({
+      where: {
+        enabled: true,
+      },
+    }),
+
+    prisma.reviewComment.count({
+      where: {
+        severity: 'ERROR',
+      },
+    }),
+
+    prisma.reviewComment.count({
+      where: {
+        severity: 'WARNING',
+      },
+    }),
+
+    prisma.reviewComment.count({
+      where: {
+        severity: 'INFO',
+      },
+    }),
   ]);
 
   return {
     totalReviews,
     averageScore: Number(avgScore._avg.score?.toFixed(1) ?? 0),
     totalComments,
+    activeRepositories,
+    highIssues,
+    mediumIssues,
+    lowIssues,
   };
 }
