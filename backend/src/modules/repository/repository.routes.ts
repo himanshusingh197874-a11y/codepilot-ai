@@ -12,7 +12,13 @@ export default async function repositoryRoutes(
     },
     repositoryController.syncRepositories,
   );
-  
+  app.get<{ Params: { id: string } }>(
+  "/:id/dashboard",
+  {
+    preHandler: [app.authenticate],
+  },
+  repositoryController.getRepositoryDashboardHandler,
+);
   app.get<{ Params: { id: string } }>(
   "/:id/insights",
   {

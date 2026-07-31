@@ -139,9 +139,113 @@ export async function getRepositoryInsightsData(
             include: {
               comments: true,
             },
+            orderBy: {
+              createdAt: "desc",
+            },
           },
         },
       },
     },
   });
+}
+
+export async function getRepositoryDashboard(repositoryId: string) {
+  const repository = await prisma.repository.findUnique({
+    where: {
+      id: repositoryId,
+    },
+  });
+
+  if (!repository) {
+    return null;
+  }
+
+  const [
+    totalReviews,
+    averageScore,
+    totalPullRequests,
+    totalIssues,
+    recentReviews,
+  ] = await Promise.all([
+    prisma.review.count({
+      where: {
+        pullRequest: {
+          repositoryId,
+        },
+      },
+    }),
+
+    prisma.review.aggregate({
+      where: {
+        pullRequest: {
+          repositoryId,
+        },
+      },
+      _avg: {
+        score: true,
+      },
+    }),
+
+    prisma.pullRequest.count({
+      where: {
+        repositoryId,
+      },
+    }),
+
+    prisma.reviewComment.count({
+      where: {
+        review: {
+          pullRequest: {
+            repositoryId,
+          },
+        },
+      },
+    }),
+
+    prisma.review.findMany({
+      where: {
+        pullRequest: {
+          repositoryId,
+        },
+      },
+      take: 5,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        pullRequest: true,
+      },
+    }),
+  ]);
+
+  return {
+    repository,
+
+    stats: {
+      totalReviews,
+      averageScore: Number(
+        averageScore._avg.score?.toFixed(1) ?? 0,
+      ),
+      totalPullRequests,
+      totalIssues,
+    },
+
+    recentReviews: recentReviews.map((review) => ({
+  id: review.id,
+  score: review.score,
+  summary: review.summary,
+  createdAt: review.createdAt,
+
+  pullRequest: {
+    id: review.pullRequest.id,
+    githubPrId: review.pullRequest.githubPrId.toString(),
+    number: review.pullRequest.number,
+    title: review.pullRequest.title,
+    state: review.pullRequest.state,
+    repositoryId: review.pullRequest.repositoryId,
+    createdAt: review.pullRequest.createdAt,
+    updatedAt: review.pullRequest.updatedAt,
+  },
+})),
+  };
 }

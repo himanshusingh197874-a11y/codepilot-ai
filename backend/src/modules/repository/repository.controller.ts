@@ -1,5 +1,8 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import * as repositoryService from './repository.service';
+import {
+  getRepositoryDashboardService,
+} from './repository.service';
 import { ReviewPipelineError } from '../webhook/webhook.service';
 
 export async function syncRepositories(
@@ -8,7 +11,7 @@ export async function syncRepositories(
 ) {
   const result = await repositoryService.syncRepositories(request);
   return reply.send(result);
-}
+} 
 
 export async function listRepositories(
   request: FastifyRequest,
@@ -90,3 +93,24 @@ export async function triggerPullRequestReviewController(
     return reply.code(500).send({ message: 'AI review failed' });
   }
 }
+
+export async function getRepositoryDashboardHandler(
+  request: FastifyRequest<{
+    Params: {
+      id: string;
+    };
+  }>,
+  reply: FastifyReply,
+) {
+  try {
+    const dashboard = await getRepositoryDashboardService(
+      request.params.id,
+    );
+
+    return reply.send(dashboard);
+  } catch {
+    return reply.status(404).send({
+      message: 'Repository not found',
+    });
+  }
+} 

@@ -98,4 +98,93 @@ export async function triggerPullRequestReview(
   return res.data;
 }
 
+export interface RepositoryDashboard {
+  repository: {
+    id: string;
+    githubRepoId: number;
+    owner: string;
+    name: string;
+    fullName: string;
+    defaultBranch: string;
+    private: boolean;
+    enabled: boolean;
+    webhookId: string | null;
+    lastSyncedAt: string | null;
+    userId: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+
+  stats: {
+    totalReviews: number;
+    averageScore: number;
+    totalPullRequests: number;
+    totalIssues: number;
+  };
+
+  recentReviews: {
+    id: string;
+    score: number;
+    summary: string;
+    createdAt: string;
+    pullRequest: {
+      id: string;
+      githubPrId: string;
+      number: number;
+      title: string;
+      state: string;
+      repositoryId: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+}
+
+export async function fetchRepositoryDashboard(id: string) {
+  const res = await api.get<RepositoryDashboard>(
+    `/repositories/${id}/dashboard`,
+  );
+
+  return res.data;
+}
+
+export interface RepositoryInsights {
+  repository: {
+    id: string;
+    name: string;
+    fullName: string;
+  };
+
+  stats: {
+    totalPullRequests: number;
+    totalReviews: number;
+    averageScore: number;
+    totalComments: number;
+  };
+
+  severity: {
+    high: number;
+    medium: number;
+    low: number;
+  };
+
+  topFiles: {
+    path: string;
+    findings: number;
+  }[];
+
+  scoreTrend: {
+    date: string;
+    score: number;
+  }[];
+}
+
+export async function fetchRepositoryInsights(id: string) {
+  const res = await api.get<RepositoryInsights>(
+    `/repositories/${id}/insights`,
+  );
+
+  return res.data;
+}
+
 export default api;

@@ -11,7 +11,7 @@ import {
   runPullRequestReview,
 } from '../webhook/webhook.service';
 import * as repositoryRepository from './repository.repository';
-
+import { getRepositoryDashboard } from './repository.repository';
 
 export async function syncRepositories(request: FastifyRequest) {
   const user = request.user as { sub: string };
@@ -225,15 +225,79 @@ export async function getRepositoryInsights(
     return null;
   }
 
-  const reviews = repository.pullRequests.flatMap(pr => pr.reviews);
-
+  const reviews = repository.pullRequests.flatMap((pr) => pr.reviews);
   const totalReviews = reviews.length;
+  const comments = reviews.flatMap((review) => review.comments);
 
+  const trendMap = new Map<
+  string,
+  {
+    total: number;
+    count: number;
+  }
+>();
+
+for (const review of reviews) {
+  const date = review.createdAt.toISOString().split("T")[0];
+
+  const existing = trendMap.get(date);
+
+  if (existing) {
+    existing.total += review.score;
+    existing.count += 1;
+  } else {
+    trendMap.set(date, {
+      total: review.score,
+      count: 1,
+    });
+  }
+}
+
+const scoreTrend = [...trendMap.entries()]
+  .map(([date, value]) => ({
+    date,
+    score: Number((value.total / value.count).toFixed(1)),
+  }))
+  .sort(
+    (a, b) =>
+      new Date(a.date).getTime() -
+      new Date(b.date).getTime(),
+  );
+
+  const severity = {
+    high: comments.filter((c) =>
+      ['high', 'critical', 'error'].includes(c.severity.toLowerCase()),
+    ).length,
+    medium: comments.filter((c) =>
+      ['medium', 'warning'].includes(c.severity.toLowerCase()),
+    ).length,
+    low: comments.filter((c) =>
+      ['low', 'info', 'suggestion'].includes(c.severity.toLowerCase()),
+    ).length,
+  };
+
+  const fileMap = new Map<string, number>();
+
+comments.forEach((comment) => {
+  fileMap.set(
+    comment.path,
+    (fileMap.get(comment.path) ?? 0) + 1,
+  );
+});
+
+const topFiles = [...fileMap.entries()]
+  .map(([path, findings]) => ({
+    path,
+    findings,
+  }))
+  .sort((a, b) => b.findings - a.findings)
+  .slice(0, 5);
+  
   const averageScore =
-    totalReviews === 0
-      ? 0
-      : reviews.reduce((sum, review) => sum + review.score, 0) /
-        totalReviews;
+  reviews.length === 0
+    ? 0
+    : reviews.reduce((sum, review) => sum + review.score, 0) /
+      reviews.length;
 
   const totalComments =
     reviews.reduce(
@@ -242,33 +306,48 @@ export async function getRepositoryInsights(
     );
 
   return {
-    repository: {
-      id: repository.id,
-      name: repository.name,
-      fullName: repository.fullName,
-    },
+  repository: {
+    id: repository.id,
+    name: repository.name,
+    fullName: repository.fullName,
+  },
 
-    stats: {
-      totalPullRequests: repository.pullRequests.length,
-      totalReviews,
-      averageScore: Number(averageScore.toFixed(1)),
-      totalComments,
-    },
+  stats: {
+    totalPullRequests: repository.pullRequests.length,
+    totalReviews,
+    averageScore: Number(averageScore.toFixed(1)),
+    totalComments,
+  },
 
-    recentReviews: reviews
-      .sort(
-        (a, b) =>
-          b.createdAt.getTime() -
-          a.createdAt.getTime(),
-      )
-      .slice(0, 10)
-      .map(review => ({
-        id: review.id,
-        score: review.score,
-        summary: review.summary,
-        createdAt: review.createdAt,
-      })),
-  };
+  severity,
+
+  topFiles,
+
+  scoreTrend,
+
+  recentReviews: [...reviews]
+    .sort(
+      (a, b) =>
+        b.createdAt.getTime() -
+        a.createdAt.getTime(),
+    )
+    .slice(0, 10)
+    .map((review) => ({
+      id: review.id,
+      score: review.score,
+      summary: review.summary,
+      createdAt: review.createdAt,
+    })),
+};
+
 }
+export async function getRepositoryDashboardService(id: string) {
+  const dashboard = await getRepositoryDashboard(id);
 
+  if (!dashboard) {
+    throw new Error('Repository not found');
+  }
+
+  return dashboard;
+}
 
