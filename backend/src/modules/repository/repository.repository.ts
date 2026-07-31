@@ -139,6 +139,9 @@ export async function getRepositoryInsightsData(
             include: {
               comments: true,
             },
+            orderBy: {
+              createdAt: "desc",
+            },
           },
         },
       },

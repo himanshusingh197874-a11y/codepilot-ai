@@ -7,7 +7,9 @@ import {
   fetchRepositoryDashboard,
   fetchRepositoryPulls,
   triggerPullRequestReview,
+  fetchRepositoryInsights,
   RepositoryDashboard,
+  RepositoryInsights,
 } from '@/lib/api';
 
 
@@ -23,6 +25,8 @@ export default function RepositoryDetailsPage() {
 
   const [dashboard, setDashboard] =
   useState<RepositoryDashboard | null>(null);
+  const [insights, setInsights] =
+  useState<RepositoryInsights | null>(null);
   const [pulls, setPulls] = useState<PullRequest[]>([]);
   const [reviewingPrNumber, setReviewingPrNumber] = useState<number | null>(
     null,
@@ -33,13 +37,19 @@ export default function RepositoryDetailsPage() {
   useEffect(() => {
     async function loadRepository() {
       try {
-        const [dashboardData, openPullRequests] = await Promise.all([
+        const [
+  dashboardData,
+  openPullRequests,
+  insightsData,
+] = await Promise.all([
   fetchRepositoryDashboard(params.id),
   fetchRepositoryPulls(params.id),
+  fetchRepositoryInsights(params.id),
 ]);
 
 setDashboard(dashboardData);
-        setPulls(openPullRequests);
+setPulls(openPullRequests);
+setInsights(insightsData);
       } catch (err) {
         const status = (err as { response?: { status?: number } }).response
           ?.status;
@@ -131,7 +141,7 @@ setPulls(openPullRequests);
 
           <div className="flex items-center gap-3">
             <Link
-              href={`/repositories/${repository.id}/insights`}
+              href={`/repositories/${params.id}/insights`}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
             >
               View Insights
@@ -208,6 +218,89 @@ setPulls(openPullRequests);
     </p>
   </div>
 </section>
+
+{insights && (
+  <section className="rounded-xl border bg-white p-6 shadow-sm">
+    <div className="mb-6 flex items-center justify-between">
+      <h2 className="text-xl font-semibold">
+        Repository Insights
+      </h2>
+
+      <Link
+        href={`/repositories/${repository.id}/insights`}
+        className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+      >
+        View Full Dashboard →
+      </Link>
+    </div>
+
+    <div className="grid gap-6 md:grid-cols-3">
+      <div>
+        <h3 className="mb-3 font-semibold">
+          Severity
+        </h3>
+
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span>High</span>
+            <span className="font-bold text-red-600">
+              {insights.severity.high}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Medium</span>
+            <span className="font-bold text-yellow-600">
+              {insights.severity.medium}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Low</span>
+            <span className="font-bold text-green-600">
+              {insights.severity.low}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="mb-3 font-semibold">
+          Top Problem Files
+        </h3>
+
+        <div className="space-y-2 text-sm">
+          {insights.topFiles.slice(0, 3).map((file) => (
+            <div
+              key={file.path}
+              className="flex justify-between"
+            >
+              <span className="truncate">
+                {file.path.split('/').pop()}
+              </span>
+
+              <span>{file.findings}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="mb-3 font-semibold">
+          Latest Score
+        </h3>
+
+        <div className="text-5xl font-bold text-green-600">
+          {insights.scoreTrend.at(-1)?.score ?? '-'}
+        </div>
+
+        <p className="mt-2 text-sm text-gray-500">
+          Latest AI Quality Score
+        </p>
+      </div>
+    </div>
+  </section>
+)}
 
       {/* Pull Requests */}
       <section>

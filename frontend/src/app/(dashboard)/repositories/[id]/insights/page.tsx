@@ -1,111 +1,128 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { getRepositoryInsights } from "@/lib/api/repositories";
-import StatCard from "@/components/dashboard/stat-card";
-import RecentReviewTable from "@/components/dashboard/recent-review-table";
-
-type RepositoryInsights = {
-  repository: {
-    id: string;
-    name: string;
-    fullName: string;
-  };
-
-  stats: {
-    totalPullRequests: number;
-    totalReviews: number;
-    averageScore: number;
-    totalComments: number;
-  };
-
-  recentReviews: {
-    id: string;
-    score: number;
-    summary: string;
-    createdAt: string;
-  }[];
-};
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { fetchRepositoryInsights, RepositoryInsights } from '@/lib/api';
+import ScoreTrendChart from "@/components/charts/score-trend-chart";
+import SeverityPieChart from "@/components/charts/severity-pie-chart";
+import TopFilesChart from "@/components/charts/top-files-chart";
 
 export default function RepositoryInsightsPage() {
-  const params = useParams();
-  const id = params.id as string;
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
 
- const [data, setData] = useState<RepositoryInsights | null>(null);
+  const [insights, setInsights] =
+    useState<RepositoryInsights | null>(null);
+
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("========== INSIGHTS PAGE ==========");
-    console.log("id =", id);
-
-    const token = localStorage.getItem("accessToken");
-
-    console.log("token =", token);
-
-    if (!token) {
-      console.log("NO TOKEN");
-      return;
+    async function load() {
+      try {
+        const data = await fetchRepositoryInsights(params.id);
+        setInsights(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     }
 
-    console.log("Calling API...");
+    if (params.id) {
+      load();
+    }
+  }, [params.id]);
 
-    getRepositoryInsights(id, token)
-      .then((res) => {
-        console.log("SUCCESS", res);
-        setData(res);
-      })
-      .catch((err) => {
-        console.error("FAILED", err);
-      });
-  }, [id]);
+  if (loading) {
+    return <div className="p-8">Loading insights...</div>;
+  }
 
-  if (!data) {
-    return <div className="p-8">Loading...</div>;
+  if (!insights) {
+    return (
+      <div className="p-8">
+        Failed to load insights.
+      </div>
+    );
   }
 
   return (
     <div className="space-y-8 p-8">
+      <button
+        onClick={() => router.back()}
+        className="text-sm text-gray-600 hover:text-black"
+      >
+        ← Back
+      </button>
+
       <div>
         <h1 className="text-3xl font-bold">
-          {data.repository.name}
+          Repository Insights
         </h1>
 
-        <p className="text-gray-500">
-          {data.repository.fullName}
+        <p className="mt-2 text-gray-500">
+          {insights.repository.fullName}
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Pull Requests"
-          value={data.stats.totalPullRequests}
-        />
+      <section className="grid gap-5 md:grid-cols-3">
+        <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <p className="text-sm text-gray-500">
+            Total Reviews
+          </p>
 
-        <StatCard
-          title="Reviews"
-          value={data.stats.totalReviews}
-        />
+          <h2 className="mt-3 text-4xl font-bold">
+            {insights.stats.totalReviews}
+          </h2>
+        </div>
 
-        <StatCard
-          title="Average Score"
-          value={data.stats.averageScore}
-        />
+        <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <p className="text-sm text-gray-500">
+            Average Score
+          </p>
 
-        <StatCard
-          title="AI Comments"
-          value={data.stats.totalComments}
-        />
-      </div>
+          <h2 className="mt-3 text-4xl font-bold text-green-600">
+            {insights.stats.averageScore.toFixed(1)}
+          </h2>
+        </div>
 
-      <div>
-        <h2 className="mb-4 text-xl font-semibold">
-          Recent Reviews
-        </h2>
+        <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <p className="text-sm text-gray-500">
+            Total Findings
+          </p>
 
-        <RecentReviewTable
-          reviews={data.recentReviews}
-        />
-      </div>
+          <h2 className="mt-3 text-4xl font-bold text-red-600">
+            {insights.stats.totalComments}
+          </h2>
+        </div>
+      </section>
+
+     <section className="rounded-xl border bg-white p-6 shadow-sm">
+  <h2 className="mb-6 text-xl font-semibold">
+    Severity Distribution
+  </h2>
+
+  <SeverityPieChart
+    data={insights.severity}
+  />
+</section>
+        <section className="rounded-xl border bg-white p-6 shadow-sm">
+  <h2 className="mb-6 text-xl font-semibold">
+    AI Score Trend
+  </h2>
+
+  <ScoreTrendChart
+    data={insights.scoreTrend}
+  />
+</section>
+      <section className="rounded-xl border bg-white p-6 shadow-sm">
+  <h2 className="mb-6 text-xl font-semibold">
+    Top Problematic Files
+  </h2>
+
+  <TopFilesChart
+    data={insights.topFiles}
+  />
+</section>
     </div>
   );
 }

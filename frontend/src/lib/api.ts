@@ -149,24 +149,33 @@ export async function fetchRepositoryDashboard(id: string) {
 }
 
 export interface RepositoryInsights {
-  averageScore: number;
-  totalReviews: number;
-  totalIssues: number;
+  repository: {
+    id: string;
+    name: string;
+    fullName: string;
+  };
 
-  scoreTrend: {
-    date: string;
-    score: number;
-  }[];
+  stats: {
+    totalPullRequests: number;
+    totalReviews: number;
+    averageScore: number;
+    totalComments: number;
+  };
 
-  severityDistribution: {
+  severity: {
     high: number;
     medium: number;
     low: number;
   };
 
   topFiles: {
-    file: string;
-    count: number;
+    path: string;
+    findings: number;
+  }[];
+
+  scoreTrend: {
+    date: string;
+    score: number;
   }[];
 }
 
