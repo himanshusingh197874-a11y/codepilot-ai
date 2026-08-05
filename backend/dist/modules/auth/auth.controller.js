@@ -37,6 +37,7 @@ exports.githubLogin = githubLogin;
 exports.githubCallback = githubCallback;
 exports.me = me;
 const authService = __importStar(require("./auth.service"));
+const env_1 = require("../../config/env");
 async function githubLogin(request, reply) {
     const url = authService.getGithubLoginUrl();
     return reply.redirect(url);
@@ -44,7 +45,9 @@ async function githubLogin(request, reply) {
 async function githubCallback(request, reply) {
     const { code } = request.query;
     const result = await authService.loginWithGithub(request.server, code);
-    return reply.send(result);
+    const callbackUrl = new URL("/auth/callback", env_1.env.FRONTEND_URL);
+    callbackUrl.searchParams.set("accessToken", result.accessToken);
+    return reply.redirect(callbackUrl.toString());
 }
 async function me(request, reply) {
     return reply.send(request.user);

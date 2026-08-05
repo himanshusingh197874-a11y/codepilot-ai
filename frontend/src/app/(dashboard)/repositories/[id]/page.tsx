@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback} from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -11,7 +11,7 @@ import {
   RepositoryDashboard,
   RepositoryInsights,
 } from '@/lib/api';
-
+import { socket } from "@/lib/socket";
 
 type PullRequest = {
   number: number;
@@ -34,56 +34,61 @@ export default function RepositoryDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const loadRepository = useCallback(async () => {
+  try {
+    const [
+      dashboardData,
+      openPullRequests,
+      insightsData,
+    ] = await Promise.all([
+      fetchRepositoryDashboard(params.id),
+      fetchRepositoryPulls(params.id),
+      fetchRepositoryInsights(params.id),
+    ]);
+
+    setDashboard(dashboardData);
+    setPulls(openPullRequests);
+    setInsights(insightsData);
+    setError('');
+  } catch (err) {
+    const status = (err as { response?: { status?: number } }).response?.status;
+
+    setError(
+      status === 404
+        ? 'Repository not found.'
+        : 'Failed to load repository details.',
+    );
+  } finally {
+    setLoading(false);
+  }
+}, [params.id]);
+   
+useEffect(() => {
+  loadRepository();
+}, [loadRepository]);
+
+
   useEffect(() => {
-    async function loadRepository() {
-      try {
-        const [
-  dashboardData,
-  openPullRequests,
-  insightsData,
-] = await Promise.all([
-  fetchRepositoryDashboard(params.id),
-  fetchRepositoryPulls(params.id),
-  fetchRepositoryInsights(params.id),
-]);
-
-setDashboard(dashboardData);
-setPulls(openPullRequests);
-setInsights(insightsData);
-      } catch (err) {
-        const status = (err as { response?: { status?: number } }).response
-          ?.status;
-
-        setError(
-          status === 404
-            ? 'Repository not found.'
-            : 'Failed to load repository details.',
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (params.id) {
+  function onRepositoryUpdated(payload: { repositoryId: string }) {
+    if (payload.repositoryId === params.id) {
+      console.log('Refreshing repository...');
       loadRepository();
     }
-  }, [params.id]);
+  }
+
+  socket.on('repository.updated', onRepositoryUpdated);
+
+  return () => {
+    socket.off('repository.updated', onRepositoryUpdated);
+  };
+}, [params.id, loadRepository]);
 
   async function handleRunReview(prNumber: number) {
     setReviewingPrNumber(prNumber);
 
     try {
-      const result = await triggerPullRequestReview(params.id, prNumber);
-
-      alert(`AI review completed. Review ID: ${result.reviewId}`);
-
-      const [dashboardData, openPullRequests] = await Promise.all([
-  fetchRepositoryDashboard(params.id),
-  fetchRepositoryPulls(params.id) as Promise<PullRequest[]>,
-]);
-
-setDashboard(dashboardData);
-setPulls(openPullRequests);
+      await triggerPullRequestReview(params.id, prNumber);
+     // Socket.IO will refresh the page automatically
     } catch (err) {
       const message =
         (err as { response?: { data?: { message?: string } } }).response?.data

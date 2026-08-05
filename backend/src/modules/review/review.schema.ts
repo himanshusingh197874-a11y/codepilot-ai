@@ -18,3 +18,27 @@ export const reviewListQuerySchema = z.object({
 });
 
 export type ReviewListQuery = z.infer<typeof reviewListQuerySchema>;
+
+export const ReviewSchema = z.object({
+  summary: z.string(),
+
+  score: z.number(),
+
+  issues: z.array(
+    z.object({
+      severity: z.enum([
+        "critical",
+        "high",
+        "medium",
+        "low",
+        "info",
+      ]),
+      message: z.string(),
+      suggestion: z.string(),
+    }),
+  ),
+
+  suggestions: z.array(z.string()),
+});
+
+export type AIReviewResponse = z.infer<typeof ReviewSchema>;

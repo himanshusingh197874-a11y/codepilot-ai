@@ -7,6 +7,7 @@ import { saveReview } from '../ai/review.repository';
 import { saveReviewComments } from '../ai/review-comment.repository';
 import { createInlineReview, InlineComment } from '../../providers/github/github.inline-review';
 import { createPullRequestReview } from '../../providers/github/github.review';
+import { eventBus } from "../../realtime/event-bus";
 
 export class ReviewPipelineError extends Error {
   constructor(message: string, public readonly statusCode: number) {
@@ -117,6 +118,16 @@ export async function runPullRequestReview({
         severity: 'warning',
       })),
     });
+
+    // Notify the application that a review has completed
+eventBus.emit("review.completed", {
+  repositoryId: repository.id,
+  reviewId: savedReview.id,
+});
+
+eventBus.emit("repository.updated", {
+  repositoryId: repository.id,
+});
 
     return savedReview;
   } catch (error) {
