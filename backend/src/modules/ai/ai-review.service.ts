@@ -1,23 +1,22 @@
 import { FileReview } from "./ai.types";
+import {
+  PullRequestReview,
+  PullRequestReviewFile,
+} from "./pr-review.types";
+import { AIProvider } from "./providers/ai-provider";
 import { getAIProvider } from "./providers/provider.factory";
 
 export class AIReviewService {
-  private readonly provider = getAIProvider();
+  constructor(private readonly provider: AIProvider = getAIProvider()) {}
 
-  async review(
-    filename: string,
-    patch: string,
-  ): Promise<FileReview> {
-    try {
-      return await this.provider.review({
-        filename,
-        patch,
-      });
-    } catch (error) {
-      console.error("AI review failed:", error);
+  reviewFile(filename: string, patch: string): Promise<FileReview> {
+    return this.provider.reviewFile({ filename, patch });
+  }
 
-      throw error;
-    }
+  reviewPullRequest(
+    files: readonly PullRequestReviewFile[],
+  ): Promise<PullRequestReview> {
+    return this.provider.reviewPullRequest(files);
   }
 }
 

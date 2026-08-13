@@ -4,7 +4,7 @@ import { env } from "../../../config/env";
 
 export const geminiClient = axios.create({
   baseURL: "https://generativelanguage.googleapis.com/v1beta",
-  timeout: 30_000,
+  timeout: env.GEMINI_TIMEOUT_MS,
   headers: {
     "Content-Type": "application/json",
   },

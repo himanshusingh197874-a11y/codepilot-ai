@@ -1,4 +1,8 @@
 import { FileReview } from "../ai.types";
+import {
+  PullRequestReview,
+  PullRequestReviewFile,
+} from "../pr-review.types";
 
 export interface ReviewRequest {
   filename: string;
@@ -6,7 +10,8 @@ export interface ReviewRequest {
 }
 
 export interface AIProvider {
-  review(
-    request: ReviewRequest,
-  ): Promise<FileReview>;
+  reviewFile(request: ReviewRequest): Promise<FileReview>;
+  reviewPullRequest(
+    files: readonly PullRequestReviewFile[],
+  ): Promise<PullRequestReview>;
 }

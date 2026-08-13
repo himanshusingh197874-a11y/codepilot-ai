@@ -9,9 +9,10 @@ export async function syncRepositories(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
+  request.log.info("Repository sync endpoint invoked");
   const result = await repositoryService.syncRepositories(request);
   return reply.send(result);
-} 
+}
 
 export async function listRepositories(
   request: FastifyRequest,
@@ -113,4 +114,4 @@ export async function getRepositoryDashboardHandler(
       message: 'Repository not found',
     });
   }
-} 
+}

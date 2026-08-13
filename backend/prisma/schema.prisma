@@ -85,6 +85,10 @@ model Review {
   pullRequestId String
   summary       String
   score         Float
+  positives     String[] @default([])
+  issues        Json     @default("[]")
+  suggestions   String[] @default([])
+  verdict       ReviewVerdict @default(approve)
 
   pullRequest PullRequest @relation(fields: [pullRequestId], references: [id])
   comments    ReviewComment[]
@@ -103,4 +107,9 @@ model ReviewComment {
   createdAt DateTime @default(now())
 
   review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+}
+
+enum ReviewVerdict {
+  approve
+  request_changes
 }

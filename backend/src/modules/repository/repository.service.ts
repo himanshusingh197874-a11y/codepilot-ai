@@ -15,22 +15,65 @@ import { getRepositoryDashboard } from './repository.repository';
 
 export async function syncRepositories(request: FastifyRequest) {
   const user = request.user as { sub: string };
+  const log = request.log;
+
+  log.info({ userId: user.sub }, "Repository sync started");
 
   const githubAccount =
     await repositoryRepository.findGithubAccountByUserId(user.sub);
 
   if (!githubAccount) {
+    log.warn({ userId: user.sub }, "GitHub account not connected for repository sync");
     throw new Error('Github account not connected');
   }
 
+  log.info({ userId: user.sub }, "GitHub account found for repository sync");
+
   const repositories = await getGithubRepositories(
     githubAccount.accessToken,
+    log,
   );
 
-  await Promise.all(
-    repositories.map((repo: any) =>
-      repositoryRepository.upsertRepository(user.sub, repo),
-    ),
+  log.info(
+    { userId: user.sub, repositoryCount: repositories.length },
+    "GitHub repositories received for sync",
+  );
+
+  if (repositories.length === 0) {
+    log.warn(
+      { userId: user.sub },
+      "GitHub returned no repositories; verify the GitHub account has repository access and approved the repo scope",
+    );
+  }
+
+  try {
+    await Promise.all(
+      repositories.map(async (repo: any) => {
+        const repositoryName =
+          repo.full_name ?? `${repo.owner?.login}/${repo.name}`;
+
+        log.info(
+          { userId: user.sub, repository: repositoryName },
+          "Saving repository",
+        );
+        const savedRepository = await repositoryRepository.upsertRepository(
+          user.sub,
+          repo,
+        );
+        log.info(
+          { userId: user.sub, repository: savedRepository.fullName },
+          "Repository saved",
+        );
+      }),
+    );
+  } catch (error) {
+    log.error({ err: error, userId: user.sub }, "Repository sync persistence failed");
+    throw error;
+  }
+
+  log.info(
+    { userId: user.sub, repositoryCount: repositories.length },
+    "Repository sync completed",
   );
 
   return {

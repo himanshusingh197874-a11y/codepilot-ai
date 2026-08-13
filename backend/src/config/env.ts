@@ -21,6 +21,16 @@ const envSchema = z.object({
     .enum(["gemini"])
     .default("gemini"),
 
+  GEMINI_MODEL: z
+    .string()
+    .trim()
+    .regex(
+      /^[A-Za-z0-9][A-Za-z0-9._-]*$/,
+      "GEMINI_MODEL must be a model ID without a models/ prefix",
+    )
+    .default("gemini-3.5-flash"),
+  GEMINI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(30_000),
+
   WEBHOOK_SECRET: z.string().min(10),
 
   APP_URL: urlSchema.optional(),

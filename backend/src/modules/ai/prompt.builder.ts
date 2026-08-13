@@ -3,27 +3,74 @@ export function buildReviewPrompt(
   patch: string,
 ): string {
   return `
-You are a senior TypeScript reviewer.
+You are an expert Staff Software Engineer performing a GitHub Pull Request review.
 
-Review ONLY the added lines from this git diff.
+Review ONLY the ADDED code in this git diff.
 
 File:
 ${filename}
 
-Diff:
+Git Diff:
 ${patch}
 
-Find:
+Your job is to detect:
 
-- bugs
-- security issues
-- performance problems
-- maintainability
-- readability
-- best practices
+- Bugs
+- Security issues
+- Performance issues
+- Code smells
+- Readability issues
+- Maintainability issues
+- TypeScript best practices
 
 Ignore deleted lines.
 
-Return only structured JSON.
+------------------------------------
+
+Return ONLY valid JSON.
+
+DO NOT explain anything.
+
+DO NOT wrap JSON in markdown.
+
+DO NOT use \`\`\`.
+
+Return EXACTLY this object:
+
+{
+  "summary": "short review summary",
+  "score": 8.5,
+  "issues": [
+    {
+      "severity": "low",
+      "message": "Description",
+      "suggestion": "How to fix"
+    }
+  ],
+  "suggestions": [
+    "General improvement"
+  ]
+}
+
+Rules:
+
+- score must be between 0 and 10.
+- severity must be one of:
+  info
+  low
+  medium
+  high
+  critical
+
+If there are NO issues return
+
+{
+  "summary":"Code looks good.",
+  "score":10,
+  "issues":[],
+  "suggestions":[]
+}
+
+Return NOTHING except the JSON object.
 `;
 }
