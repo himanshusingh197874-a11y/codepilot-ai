@@ -18,3 +18,71 @@ export const reviewListQuerySchema = z.object({
 });
 
 export type ReviewListQuery = z.infer<typeof reviewListQuerySchema>;
+
+export const ReviewIssueSchema = z
+  .object({
+    severity: z.enum([
+      'critical',
+      'high',
+      'medium',
+      'low',
+      'info',
+    ]),
+
+    message: z
+      .string()
+      .trim()
+      .min(1)
+      .max(2_000),
+
+    suggestion: z
+      .string()
+      .trim()
+      .min(1)
+      .max(2_000),
+
+    path: z
+      .string()
+      .trim()
+      .min(1)
+      .optional(),
+
+    line: z
+      .number()
+      .int()
+      .min(1)
+      .optional(),
+  })
+  .strict();
+
+export const ReviewSchema = z
+  .object({
+    summary: z
+      .string()
+      .trim()
+      .min(1)
+      .max(2_000),
+
+    score: z
+      .number()
+      .finite()
+      .min(0)
+      .max(10),
+
+    issues: z
+      .array(ReviewIssueSchema)
+      .max(100),
+
+    suggestions: z
+      .array(
+        z
+          .string()
+          .trim()
+          .min(1)
+          .max(500),
+      )
+      .max(20),
+  })
+  .strict();
+
+export type AIReviewResponse = z.infer<typeof ReviewSchema>;

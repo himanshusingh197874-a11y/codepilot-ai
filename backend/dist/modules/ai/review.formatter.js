@@ -1,33 +1,33 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.formatReviewComment = formatReviewComment;
-function formatReviewComment(reviews) {
-    let body = '## 🤖 CodePilot AI Review\n\n';
-    for (const review of reviews) {
-        body += `### ${review.filename}\n\n`;
-        body += `**${review.summary}**\n\n`;
-        if (review.issues.length > 0) {
-            for (const issue of review.issues) {
-                const emoji = issue.severity === 'high'
-                    ? '🔴'
-                    : issue.severity === 'medium'
-                        ? '🟠'
-                        : '🟡';
-                body += `${emoji} **${issue.message}**\n`;
-                if (issue.suggestion) {
-                    body += `   - Suggestion: ${issue.suggestion}\n`;
-                }
-            }
-            body += '\n';
-        }
-        if (review.suggestions.length > 0) {
-            body += '💡 **Suggestions**\n';
-            for (const suggestion of review.suggestions) {
-                body += `- ${suggestion}\n`;
-            }
-            body += '\n';
-        }
-        body += '---\n\n';
+const severityEmoji = {
+    critical: "🔴",
+    high: "🔴",
+    medium: "🟠",
+    low: "🟡",
+    info: "🔵",
+};
+function formatReviewComment(review) {
+    const lines = [
+        "## CodePilot AI Review",
+        "",
+        `**Verdict:** ${review.verdict === "approve" ? "Approve" : "Request changes"}`,
+        `**Score:** ${review.overallScore.toFixed(1)}/10`,
+        "",
+        review.summary,
+    ];
+    if (review.positives.length > 0) {
+        lines.push("", "### Positives", ...review.positives.map((positive) => `- ${positive}`));
     }
-    return body;
+    if (review.issues.length > 0) {
+        lines.push("", "### Findings");
+        for (const issue of review.issues) {
+            lines.push(`- ${severityEmoji[issue.severity]} **${issue.severity.toUpperCase()}**: ${issue.message}`, `  - Suggestion: ${issue.suggestion}`);
+        }
+    }
+    if (review.suggestions.length > 0) {
+        lines.push("", "### Suggestions", ...review.suggestions.map((suggestion) => `- ${suggestion}`));
+    }
+    return lines.join("\n");
 }

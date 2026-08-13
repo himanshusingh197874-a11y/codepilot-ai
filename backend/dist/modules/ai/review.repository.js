@@ -3,12 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.saveReview = saveReview;
 const prisma_1 = require("../../lib/prisma");
 async function saveReview(params) {
-    const pr = await prisma_1.prisma.pullRequest.upsert({
+    const pullRequest = await prisma_1.prisma.pullRequest.upsert({
         where: { githubPrId: params.githubPrId },
-        update: {
-            title: params.title,
-            state: params.state,
-        },
+        update: { title: params.title, state: params.state },
         create: {
             githubPrId: params.githubPrId,
             number: params.number,
@@ -17,14 +14,15 @@ async function saveReview(params) {
             repositoryId: params.repositoryId,
         },
     });
-    const avgScore = params.reviews.reduce((sum, r) => sum + r.score, 0) /
-        Math.max(params.reviews.length, 1);
-    const review = await prisma_1.prisma.review.create({
+    return prisma_1.prisma.review.create({
         data: {
-            pullRequestId: pr.id,
-            summary: `${params.reviews.length} files analyzed`,
-            score: Number(avgScore.toFixed(1)),
+            pullRequestId: pullRequest.id,
+            summary: params.review.summary,
+            score: params.review.overallScore,
+            positives: params.review.positives,
+            issues: params.review.issues,
+            suggestions: params.review.suggestions,
+            verdict: params.review.verdict,
         },
     });
-    return review;
 }

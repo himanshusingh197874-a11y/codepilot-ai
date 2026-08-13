@@ -4,6 +4,7 @@ exports.createWebhook = createWebhook;
 exports.deleteWebhook = deleteWebhook;
 exports.listWebhooks = listWebhooks;
 const rest_1 = require("@octokit/rest");
+const env_1 = require("../../config/env");
 async function createWebhook(accessToken, owner, repo) {
     const octokit = new rest_1.Octokit({
         auth: accessToken,
@@ -12,7 +13,7 @@ async function createWebhook(accessToken, owner, repo) {
         owner,
         repo,
         config: {
-            url: `${process.env.APP_URL}/api/v1/webhooks/github`,
+            url: `${env_1.env.PUBLIC_API_URL}/api/v1/webhooks/github`,
             content_type: "json",
             secret: process.env.WEBHOOK_SECRET,
             insecure_ssl: "0",

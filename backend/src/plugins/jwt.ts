@@ -12,16 +12,9 @@ export default fp(async function jwtPlugin(app: FastifyInstance) {
   });
 
  app.decorate("authenticate", async function (request, reply) {
-  console.log("Authorization:", request.headers.authorization);
-
   try {
     await request.jwtVerify();
-
-    console.log("Verified User:", request.user);
   } catch (err) {
-    console.error("JWT VERIFY ERROR:");
-    console.error(err);
-
     return reply.code(401).send({
       message: "Unauthorized",
       reason: err instanceof Error ? err.message : err,

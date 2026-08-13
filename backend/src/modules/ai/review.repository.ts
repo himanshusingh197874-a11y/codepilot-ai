@@ -1,5 +1,5 @@
-import { prisma } from '../../lib/prisma';
-import { FileReview } from './ai.types';
+import { prisma } from "../../lib/prisma";
+import { PullRequestReview } from "./pr-review.types";
 
 export async function saveReview(params: {
   repositoryId: string;
@@ -7,14 +7,11 @@ export async function saveReview(params: {
   number: number;
   title: string;
   state: string;
-  reviews: FileReview[];
+  review: PullRequestReview;
 }) {
-  const pr = await prisma.pullRequest.upsert({
+  const pullRequest = await prisma.pullRequest.upsert({
     where: { githubPrId: params.githubPrId },
-    update: {
-      title: params.title,
-      state: params.state,
-    },
+    update: { title: params.title, state: params.state },
     create: {
       githubPrId: params.githubPrId,
       number: params.number,
@@ -24,17 +21,15 @@ export async function saveReview(params: {
     },
   });
 
-  const avgScore =
-    params.reviews.reduce((sum, r) => sum + r.score, 0) /
-    Math.max(params.reviews.length, 1);
-
-  const review = await prisma.review.create({
+  return prisma.review.create({
     data: {
-      pullRequestId: pr.id,
-      summary: `${params.reviews.length} files analyzed`,
-      score: Number(avgScore.toFixed(1)),
+      pullRequestId: pullRequest.id,
+      summary: params.review.summary,
+      score: params.review.overallScore,
+      positives: params.review.positives,
+      issues: params.review.issues,
+      suggestions: params.review.suggestions,
+      verdict: params.review.verdict,
     },
   });
-
-  return review;
 }

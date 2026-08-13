@@ -1,7 +1,11 @@
 import { buildApp } from './app';
+import "./realtime/logger";
+import { registerSocket } from "./realtime/socket";
 
 const start = async () => {
   const app = await buildApp();
+
+   registerSocket(app);
 
   try {
     await app.listen({

@@ -47,7 +47,9 @@ export default function SeverityPieChart({ data }: Props) {
           dataKey="value"
           nameKey="name"
           outerRadius={110}
-          label
+          label={({ name, percent }) =>
+            `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+          }
         >
           {chartData.map((_, index) => (
             <Cell

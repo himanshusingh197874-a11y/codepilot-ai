@@ -31,6 +31,10 @@ export default async function reviewRoutes(app: FastifyInstance) {
               'pullRequest',
               'summary',
               'score',
+              'positives',
+              'issues',
+              'suggestions',
+              'verdict',
               'findings',
             ],
             properties: {
@@ -38,6 +42,23 @@ export default async function reviewRoutes(app: FastifyInstance) {
               repository: { type: 'string' },
               score: { type: 'number' },
               summary: { type: 'string' },
+              positives: { type: 'array', items: { type: 'string' } },
+              issues: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  required: ['severity', 'message', 'suggestion'],
+                  properties: {
+                    severity: { type: 'string' },
+                    message: { type: 'string' },
+                    suggestion: { type: 'string' },
+                    path: { type: 'string' },
+                    line: { type: 'integer', minimum: 1 },
+                  },
+                },
+              },
+              suggestions: { type: 'array', items: { type: 'string' } },
+              verdict: { type: 'string', enum: ['approve', 'request_changes'] },
               createdAt: { type: 'string', format: 'date-time' },
               pullRequest: {
                 type: 'object',
@@ -51,12 +72,14 @@ export default async function reviewRoutes(app: FastifyInstance) {
                 type: 'array',
                 items: {
                   type: 'object',
-                  required: ['id', 'path', 'line', 'message', 'severity'],
+                  required: ['id', 'source', 'message', 'severity'],
                   properties: {
                     id: { type: 'string' },
+                    source: { type: 'string', enum: ['ai', 'inline'] },
                     path: { type: 'string' },
                     line: { type: 'integer' },
                     message: { type: 'string' },
+                    suggestion: { type: 'string' },
                     severity: { type: 'string' },
                     codeSnippet: { type: 'string' },
                   },

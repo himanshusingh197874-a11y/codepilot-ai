@@ -39,9 +39,20 @@ async function repositoryRoutes(app) {
     app.post("/sync", {
         preHandler: [app.authenticate],
     }, repositoryController.syncRepositories);
+    app.get("/:id/dashboard", {
+        preHandler: [app.authenticate],
+    }, repositoryController.getRepositoryDashboardHandler);
+    app.get("/:id/insights", {
+        preHandler: [app.authenticate],
+    }, repositoryController.getRepositoryInsightsController);
     app.get("/", {
         preHandler: [app.authenticate],
     }, repositoryController.listRepositories);
+    app.get('/:id/pulls', { preHandler: [app.authenticate] }, repositoryController.getOpenPullRequestsController);
+    app.post('/:id/pulls/:number/review', { preHandler: [app.authenticate] }, repositoryController.triggerPullRequestReviewController);
+    app.get("/:id", {
+        preHandler: [app.authenticate],
+    }, repositoryController.getRepositoryByIdController);
     app.patch("/:id/enable", {
         preHandler: [app.authenticate],
         schema: {
