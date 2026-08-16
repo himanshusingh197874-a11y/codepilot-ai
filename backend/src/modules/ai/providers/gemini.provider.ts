@@ -649,7 +649,6 @@ export class GeminiProvider implements AIProvider {
         "Gemini response validation failed",
         {
           provider: "gemini",
-          model: env.GEMINI_MODEL,
           retryable: false,
           reviewScope,
           originalError:
